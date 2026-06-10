@@ -30,6 +30,7 @@ obs_sock.connect(f"tcp://{REMOTE_IP}:{OBS_PORT}")
 obs_sock.setsockopt(zmq.RCVTIMEO, 80)
 
 ARM_JOINTS = ["shoulder_pan","shoulder_lift","elbow_flex","wrist_flex","wrist_roll","gripper"]
+REC_DIR = Path(__file__).parent / "recordings"
 
 # ── State ─────────────────────────────────────────────────────────────────────
 state = {
@@ -53,6 +54,11 @@ state = {
     "inference_mode": False,
     "inference_model": "",
     "inference_status":"idle",
+    # Recording
+    "recording":      False,
+    "rec_dataset":    "",
+    "rec_episode":    0,
+    "rec_frames":     0,
     # Waypoints
     "waypoints":      [],
     "waypoint_active": False,
@@ -150,6 +156,72 @@ def obs_loop():
 
 threading.Thread(target=obs_loop, daemon=True).start()
 
+# ── Recording ─────────────────────────────────────────────────────────────────
+_rec_fh = None      # open jsonl file handle
+_rec_path = None    # current episode dir
+_rec_t0 = 0.0
+
+def rec_start(dataset):
+    global _rec_fh, _rec_path, _rec_t0
+    rec_stop()
+    ds_dir = REC_DIR / dataset
+    ds_dir.mkdir(parents=True, exist_ok=True)
+    # next episode index
+    existing = sorted(ds_dir.glob("episode_*"))
+    ep = len(existing)
+    _rec_path = ds_dir / f"episode_{ep:03d}"
+    _rec_path.mkdir(parents=True, exist_ok=True)
+    (_rec_path / "frames").mkdir(exist_ok=True)
+    _rec_fh = open(_rec_path / "data.jsonl", "w", encoding="utf-8")
+    _rec_t0 = time.time()
+    with lock:
+        state["recording"]=True; state["rec_dataset"]=dataset
+        state["rec_episode"]=ep; state["rec_frames"]=0
+
+def rec_stop():
+    global _rec_fh, _rec_path
+    if _rec_fh:
+        _rec_fh.close(); _rec_fh=None
+        # write meta
+        try:
+            with lock: nframes=state["rec_frames"]
+            (_rec_path / "meta.json").write_text(json.dumps({
+                "frames": nframes, "fps": 30, "joints": ARM_JOINTS,
+                "duration_s": time.time()-_rec_t0,
+            }, indent=2))
+        except Exception: pass
+    _rec_path=None
+    with lock: state["recording"]=False
+
+def rec_frame(action):
+    """Append one (observation, action) frame; save camera jpegs."""
+    global _rec_fh
+    if not _rec_fh: return
+    with lock:
+        fi = state["rec_frames"]
+        obs_joints = {f"left_{j}": state["arm_left"][j] for j in ARM_JOINTS}
+        obs_joints.update({f"right_{j}": state["arm_right"][j] for j in ARM_JOINTS})
+        obs_joints["lift_mm"] = state["lift_height"]
+        odom = dict(state["odom"])
+        cams = list(state["camera_names"])
+        cam_data = {c: state["cameras"].get(c,"") for c in cams}
+    # save camera frames as jpg
+    cam_files = {}
+    for c, b64 in cam_data.items():
+        if b64:
+            try:
+                fn = f"frames/{c}_{fi:05d}.jpg"
+                (_rec_path / fn).write_bytes(base64.b64decode(b64))
+                cam_files[c] = fn
+            except Exception: pass
+    rec = {
+        "t": round(time.time()-_rec_t0, 3),
+        "observation": {"joints": obs_joints, "odom": odom, "cameras": cam_files},
+        "action": action,
+    }
+    _rec_fh.write(json.dumps(rec) + "\n")
+    with lock: state["rec_frames"] = fi + 1
+
 # ── Send / waypoint loop ──────────────────────────────────────────────────────
 def send_loop():
     initialized.wait(timeout=5.0)
@@ -191,7 +263,12 @@ def send_loop():
             with lock: bc = state["base_cmd"]
             update_odom(bc["x"], bc["y"], bc["theta"])
 
-        cmd_sock.send_string(json.dumps(build_action()))
+        act = build_action()
+        cmd_sock.send_string(json.dumps(act))
+        with lock: rec = state["recording"]
+        if rec:
+            try: rec_frame(act)
+            except Exception as e: print(f"[rec] {e}")
         time.sleep(1/30)
 
 threading.Thread(target=send_loop, daemon=True).start()
@@ -359,6 +436,10 @@ def status():
             cameras=state["camera_names"],
             inference_mode=state["inference_mode"],
             inference_status=state["inference_status"],
+            recording=state["recording"],
+            rec_dataset=state["rec_dataset"],
+            rec_episode=state["rec_episode"],
+            rec_frames=state["rec_frames"],
             waypoints=state["waypoints"],
             waypoint_active=state["waypoint_active"],
             waypoint_idx=state["waypoint_idx"],
@@ -390,6 +471,27 @@ def waypoints_api():
         elif action=='reset_odom':
             state["odom"]={"x":0,"y":0,"theta":0}
     return jsonify(ok=True)
+
+@app.route('/record', methods=['POST'])
+def record_api():
+    d = request.json; action = d.get('action')
+    if action == 'start':
+        ds = d.get('dataset', 'demo').strip() or 'demo'
+        rec_start(ds)
+    elif action == 'stop':
+        rec_stop()
+    with lock:
+        return jsonify(recording=state["recording"], episode=state["rec_episode"], frames=state["rec_frames"])
+
+@app.route('/recordings')
+def recordings_list():
+    out = []
+    if REC_DIR.exists():
+        for ds in sorted(REC_DIR.iterdir()):
+            if ds.is_dir():
+                eps = sorted(ds.glob("episode_*"))
+                out.append({"dataset": ds.name, "episodes": len(eps)})
+    return jsonify(out)
 
 @app.route('/checkpoints')
 def checkpoints():

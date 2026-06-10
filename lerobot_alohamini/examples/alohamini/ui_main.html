@@ -95,6 +95,7 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
   <div class="tab" onclick="showView('cameras',this)">Cameras</div>
   <div class="tab" onclick="showView('arms',this)">Arms 3D</div>
   <div class="tab" onclick="showView('map',this)">Map / Routes</div>
+  <div class="tab" onclick="showView('record',this)">Record</div>
   <div class="tab" onclick="showView('ai',this)">AI Control</div>
 </div>
 
@@ -171,6 +172,38 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
     <div class="card">
       <div class="card-title">Waypoints · Odometry: <span id="odom_txt" style="color:#4a9eff">0,0,0°</span></div>
       <div class="wp-list" id="wp_list"><div style="color:#3a4a60;font-size:12px;padding:20px;text-align:center">Click on map to add waypoints</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- RECORD -->
+<div class="view" id="view_record">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Record Demonstration</div>
+      <div class="infer-status idle" id="rec_status">● Not recording</div>
+      <div style="margin:10px 0">
+        <div style="font-size:11px;color:#4a6080;margin-bottom:4px">Dataset name</div>
+        <input type="text" id="rec_dataset" value="demo" placeholder="my_task">
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn go" id="rec_btn" onclick="toggleRec()">● Start Recording</button>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:#8090b0">
+        Episode: <span id="rec_ep" style="color:#4a9eff">0</span> ·
+        Frames: <span id="rec_fr" style="color:#4a9eff">0</span>
+      </div>
+      <div style="margin-top:14px;font-size:11px;color:#4a6080;line-height:1.6">
+        Записывает наблюдения (суставы + камеры + одометрия) и твои действия,
+        пока ты управляешь роботом (веб/геймпад). Каждый Start = новый эпизод.
+        Папка: <code style="color:#8090b0">examples/alohamini/recordings/&lt;dataset&gt;/</code>.
+        Конвертация в LeRobot-датасет: <code style="color:#8090b0">python convert_recording.py &lt;dataset&gt;</code>.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recorded Datasets</div>
+      <div id="rec_list" style="font-size:12px"></div>
+      <div class="cam-box" id="rec_cam" style="margin-top:10px"><div class="cam-empty">camera preview</div></div>
     </div>
   </div>
 </div>
@@ -360,6 +393,23 @@ async function loadCheckpoints(){
 }
 loadCheckpoints();
 
+// ── Recording ─────────────────────────────────────────────────────────────────
+let recOn=false;
+async function toggleRec(){
+  const ds=document.getElementById('rec_dataset').value;
+  const action=recOn?'stop':'start';
+  await fetch('/record',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,dataset:ds})});
+  refreshRecList();
+}
+async function refreshRecList(){
+  try{
+    const list=await(await fetch('/recordings')).json();
+    const el=document.getElementById('rec_list');
+    el.innerHTML=list.length?list.map(d=>`<div style="padding:5px 8px;background:#0d1018;border-radius:6px;margin-bottom:4px">📁 <b>${d.dataset}</b> — ${d.episodes} эпизод(ов)</div>`).join(''):'<div style="color:#3a4a60;padding:12px">Нет записей</div>';
+  }catch(e){}
+}
+refreshRecList();
+
 // ── Cameras ───────────────────────────────────────────────────────────────────
 function renderCams(names){
   if(JSON.stringify(names)===JSON.stringify(camList))return;
@@ -405,6 +455,16 @@ setInterval(async()=>{
     const is=document.getElementById('infer_status');
     is.className='infer-status '+(d.inference_mode?'running':'idle');
     is.innerText='Inference: '+(d.inference_status||'idle').toUpperCase();
+    // recording
+    recOn=d.recording;
+    const rs=document.getElementById('rec_status');
+    if(rs){rs.className='infer-status '+(recOn?'running':'idle');rs.innerText=recOn?'● REC '+(d.rec_dataset||''):'● Not recording';}
+    const rb=document.getElementById('rec_btn');
+    if(rb){rb.innerText=recOn?'■ Stop Recording':'● Start Recording';rb.className='btn '+(recOn?'danger':'go');}
+    const re=document.getElementById('rec_ep');if(re)re.innerText=d.rec_episode||0;
+    const rf=document.getElementById('rec_fr');if(rf)rf.innerText=d.rec_frames||0;
+    // record cam preview = first cam
+    if((d.cameras||[]).length){const rc=document.getElementById('rec_cam');if(rc&&!rc.querySelector('img'))rc.innerHTML=`<img src="/camera/${d.cameras[0]}">`;}
     // ai joints
     if(d.arms)document.getElementById('ai_joints').innerText='L: '+JOINTS.map(j=>(d.arms.left[j]||0).toFixed(0)).join(', ')+' | R: '+JOINTS.map(j=>(d.arms.right[j]||0).toFixed(0)).join(', ');
   }catch(e){}
