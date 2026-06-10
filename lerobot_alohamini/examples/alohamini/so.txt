@@ -1,0 +1,7 @@
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.10)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+Open:     http://localhost:8080
+Settings: http://localhost:8080/settings
+Robot:    192.168.31.170  (cmd:5555 obs:5556)
+ * Serving Flask app 'controller_v3'
+ * Debug mode: off

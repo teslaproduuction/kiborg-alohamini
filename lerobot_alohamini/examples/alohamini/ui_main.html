@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><title>AlohaMini Control</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0a0d14;color:#c8d0e0;font-family:'Segoe UI',Arial,sans-serif;overflow-x:hidden}
+.topbar{display:flex;align-items:center;gap:14px;padding:8px 16px;background:#0d1018;border-bottom:1px solid #1a2030;position:sticky;top:0;z-index:100}
+.dot{width:9px;height:9px;border-radius:50%;background:#f33;display:inline-block;margin-right:5px;transition:.3s}
+.dot.ok{background:#3f3;box-shadow:0 0 6px #3f3}
+h1{font-size:15px;color:#4a9eff;margin:0;font-weight:600}
+a.nav{color:#8090b0;text-decoration:none;padding:5px 12px;border:1px solid #253040;border-radius:6px;font-size:12px;transition:.15s}
+a.nav:hover{border-color:#4a9eff;color:#4a9eff}
+
+.tabs{display:flex;gap:4px;padding:8px 12px 0;background:#0a0d14}
+.tab{padding:8px 18px;background:#0d1018;border:1px solid #1a2030;border-bottom:none;border-radius:8px 8px 0 0;
+     cursor:pointer;font-size:13px;color:#6a7a95}
+.tab.active{background:#131822;color:#4a9eff;border-color:#253040}
+.view{display:none;padding:12px}.view.active{display:block}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:800px){.grid2,.grid3{grid-template-columns:1fr}}
+
+.card{background:#131822;border:1px solid #1e2535;border-radius:10px;padding:12px}
+.card-title{font-size:10px;color:#4a6080;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+
+/* Cameras */
+.cam-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+.cam-box{background:#060a10;border:1px solid #1e2535;border-radius:8px;overflow:hidden;position:relative}
+.cam-box img{width:100%;display:block;background:#000;min-height:160px}
+.cam-label{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:#4a9eff;padding:2px 8px;border-radius:4px;font-size:11px}
+.cam-empty{padding:40px;text-align:center;color:#3a4a60;font-size:13px}
+
+/* Dpad */
+.dpad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,58px);gap:4px;margin:0 auto;width:max-content}
+.db{background:#1a2030;border:1px solid #253040;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:19px;cursor:pointer;touch-action:none;color:#8090b0;user-select:none}
+.db:active,.db.on{background:#4a9eff;color:#000;border-color:#4a9eff}
+.stopb{background:#2a0d0d;border-color:#4a2020}.stopb:active,.stopb.on{background:#f44;color:#fff}
+
+/* Lift */
+.lift-outer{background:#0a0d14;border:1px solid #1e2535;border-radius:8px;height:130px;position:relative;overflow:hidden}
+.lift-inner{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#06f,#4a9eff);transition:height .15s}
+.sm-btn{padding:7px;background:#1a2030;border:1px solid #253040;border-radius:6px;color:#8090b0;cursor:pointer;touch-action:none;font-size:15px;text-align:center;flex:1}
+.sm-btn:active,.sm-btn.on{background:#4a9eff;color:#000}
+
+/* 3D */
+#viewer{width:100%;height:320px;background:#070b12;border-radius:8px}
+.arm-sel{display:flex;gap:4px;margin:8px 0 6px}
+.arm-tab{flex:1;padding:6px;background:#1a2030;border:1px solid #253040;border-radius:6px;cursor:pointer;text-align:center;font-size:12px;color:#6a7a95}
+.arm-tab.active{background:#4a9eff;color:#000}
+.arm-panel{display:none}.arm-panel.active{display:block}
+.jr{display:flex;align-items:center;gap:6px;padding:5px 4px;border-radius:6px;cursor:pointer}
+.jr:hover{background:#1a2030}.jr.sel{background:#0a2a45;border-left:2px solid #4a9eff;padding-left:6px}
+.jdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.jname{font-size:11px;color:#8090b0;min-width:88px}
+.jval{font-size:11px;color:#4a9eff;min-width:42px;text-align:right}
+.jbtns{margin-left:auto;display:flex;gap:3px}
+.jb{width:26px;height:26px;background:#1a2030;border:1px solid #253040;border-radius:5px;color:#8090b0;cursor:pointer;touch-action:none;font-size:14px}
+.jb:active,.jb.on{background:#4a9eff;color:#000}
+
+/* Map */
+#map-canvas{width:100%;height:400px;background:#070b12;border:1px solid #1e2535;border-radius:8px;cursor:crosshair;display:block}
+.wp-list{max-height:200px;overflow-y:auto;margin-top:8px}
+.wp-item{display:flex;align-items:center;gap:8px;padding:5px 8px;background:#0d1018;border-radius:6px;margin-bottom:4px;font-size:12px}
+.wp-item.active{background:#0a2a45;border:1px solid #4a9eff}
+.btn{padding:8px 14px;border-radius:7px;border:1px solid #253040;background:#1a2030;color:#c8d0e0;cursor:pointer;font-size:12px;transition:.15s}
+.btn:hover{border-color:#4a9eff;color:#4a9eff}
+.btn.primary{background:#0a2545;border-color:#4a9eff;color:#4a9eff}
+.btn.danger{background:#2a0d0d;border-color:#4a2020;color:#f66}
+.btn.go{background:#0a3520;border-color:#2a6040;color:#4f8}
+
+/* Inference */
+.infer-status{padding:12px;border-radius:8px;text-align:center;font-size:14px;margin-bottom:10px}
+.infer-status.idle{background:#1a2030;color:#6a7a95}
+.infer-status.running{background:#0a3520;color:#4f8;animation:pulse 1.5s infinite}
+@keyframes pulse{50%{opacity:.6}}
+input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c8d0e0;border-radius:6px;padding:8px;font-size:13px}
+.speed-row{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🤖 AlohaMini</h1>
+  <span><span class="dot" id="dot"></span><span id="conn">Connecting…</span></span>
+  <span id="gp" style="color:#fa0;font-size:11px"></span>
+  <a class="nav" href="/settings" style="margin-left:auto">🎮 Controller</a>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showView('drive',this)">Drive</div>
+  <div class="tab" onclick="showView('cameras',this)">Cameras</div>
+  <div class="tab" onclick="showView('arms',this)">Arms 3D</div>
+  <div class="tab" onclick="showView('map',this)">Map / Routes</div>
+  <div class="tab" onclick="showView('ai',this)">AI Control</div>
+</div>
+
+<!-- DRIVE -->
+<div class="view active" id="view_drive">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Base · <span id="spd_v" style="color:#4a9eff">0.30 m/s</span>
+        <button class="sm-btn" id="r" style="width:36px;height:24px;display:inline-block;flex:none;margin-left:8px">+</button>
+        <button class="sm-btn" id="f" style="width:36px;height:24px;display:inline-block;flex:none">−</button>
+      </div>
+      <div style="display:flex;gap:14px">
+        <div class="dpad">
+          <div></div><div class="db" id="w">▲</div><div></div>
+          <div class="db" id="z">◄</div><div class="db stopb" id="stop">■</div><div class="db" id="x">►</div>
+          <div class="db" id="a">↺</div><div class="db" id="s">▼</div><div class="db" id="d">↻</div>
+        </div>
+        <div style="flex:1">
+          <div class="card-title">Lift · <span id="lift_v">0.0</span>mm</div>
+          <div class="lift-outer"><div class="lift-inner" id="lift_bar" style="height:0%"></div></div>
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <div class="sm-btn" id="u">▲</div><div class="sm-btn" id="j">▼</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Front Camera</div>
+      <div class="cam-box" id="drive_cam"><div class="cam-empty">No camera feed</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CAMERAS -->
+<div class="view" id="view_cameras">
+  <div class="card">
+    <div class="card-title">Camera Feeds</div>
+    <div class="cam-grid" id="cam_grid"><div class="cam-empty">Waiting for camera streams from robot…</div></div>
+  </div>
+</div>
+
+<!-- ARMS 3D -->
+<div class="view" id="view_arms">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">3D Visualization (drag to orbit)</div>
+      <div id="viewer"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Joint Control</div>
+      <div class="arm-sel">
+        <div class="arm-tab active" onclick="showArm('left',this)">◄ LEFT</div>
+        <div class="arm-tab" onclick="showArm('right',this)">RIGHT ►</div>
+      </div>
+      <div class="arm-panel active" id="panel_left"></div>
+      <div class="arm-panel" id="panel_right"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="view" id="view_map">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">2D Map · Click to add waypoint · Robot = blue</div>
+      <canvas id="map-canvas"></canvas>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn go" onclick="wp('start')">▶ Run Route</button>
+        <button class="btn" onclick="wp('stop')">⏸ Stop</button>
+        <button class="btn danger" onclick="wp('clear')">🗑 Clear</button>
+        <button class="btn" onclick="wp('reset_odom')">⌖ Reset Position</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Waypoints · Odometry: <span id="odom_txt" style="color:#4a9eff">0,0,0°</span></div>
+      <div class="wp-list" id="wp_list"><div style="color:#3a4a60;font-size:12px;padding:20px;text-align:center">Click on map to add waypoints</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI -->
+<div class="view" id="view_ai">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Neural Network Control</div>
+      <div class="infer-status idle" id="infer_status">Inference: IDLE</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:#4a6080;margin-bottom:4px">Found checkpoints on this PC
+          <span onclick="loadCheckpoints()" style="cursor:pointer;color:#4a9eff;margin-left:6px">↻ refresh</span></div>
+        <select id="model_select" onchange="document.getElementById('model_path').value=this.value" style="width:100%;background:#0a0d14;border:1px solid #253040;color:#c8d0e0;border-radius:6px;padding:8px;font-size:12px;margin-bottom:6px">
+          <option value="">— select trained model —</option>
+        </select>
+        <div style="font-size:11px;color:#4a6080;margin-bottom:4px">…or model path (HF repo / local checkpoint)</div>
+        <input type="text" id="model_path" placeholder="outputs/train/act_my_task/checkpoints/last/pretrained_model">
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn go" onclick="infer('start')">▶ Start AI Control</button>
+        <button class="btn danger" onclick="infer('stop')">■ Stop</button>
+      </div>
+      <div style="margin-top:14px;font-size:11px;color:#4a6080;line-height:1.6">
+        ⚠ AI control runs the trained policy on this PC (GPU). The robot executes
+        actions the model predicts from camera + joint observations. Make sure the
+        model was trained on a dataset recorded with the same camera setup.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Live Observation Preview</div>
+      <div class="cam-box" id="ai_cam"><div class="cam-empty">No camera</div></div>
+      <div style="margin-top:8px;font-size:11px;color:#6a7a95" id="ai_joints"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script>
+const JOINTS=['shoulder_pan','shoulder_lift','elbow_flex','wrist_flex','wrist_roll','gripper'];
+const JLABELS=['Shoulder Pan','Shoulder Lift','Elbow Flex','Wrist Flex','Wrist Roll','Gripper'];
+const JCOLORS=['#f55','#fa5','#ff5','#5f5','#5af','#a5f'];
+const armVals={left:{},right:{}};
+JOINTS.forEach(j=>{armVals.left[j]=0;armVals.right[j]=0});
+let camList=[];
+
+function showView(v,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');document.getElementById('view_'+v).classList.add('active');
+  if(v==='arms'&&!window._three)initThree();
+  if(v==='map')drawMap();
+}
+
+// ── 3D arm ────────────────────────────────────────────────────────────────────
+let scene,camera,renderer,armMeshes={left:[],right:[]};
+const SEG=[0,70,60,50,35,20,14];
+function initThree(){
+  window._three=true;
+  const el=document.getElementById('viewer');
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x070b12);
+  camera=new THREE.PerspectiveCamera(50,el.clientWidth/320,0.1,2000);
+  camera.position.set(0,200,320);camera.lookAt(0,90,0);
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(el.clientWidth,320);el.appendChild(renderer.domElement);
+  scene.add(new THREE.AmbientLight(0xffffff,.65));
+  const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(1,2,1);scene.add(dl);
+  scene.add(new THREE.GridHelper(400,20,0x1a2535,0x131822));
+  buildArm('left',-60);buildArm('right',60);animate();
+  // orbit
+  let drag=false,lx,ly,th=0,phi=.6,R=360;
+  function upd(){camera.position.set(R*Math.sin(th)*Math.cos(phi),R*Math.sin(phi),R*Math.cos(th)*Math.cos(phi));camera.lookAt(0,90,0);}
+  el.addEventListener('mousedown',e=>{drag=true;lx=e.clientX;ly=e.clientY});
+  window.addEventListener('mouseup',()=>drag=false);
+  window.addEventListener('mousemove',e=>{if(!drag)return;th-=(e.clientX-lx)*.01;phi=Math.max(.1,Math.min(1.5,phi-(e.clientY-ly)*.01));lx=e.clientX;ly=e.clientY;upd();});
+  el.addEventListener('wheel',e=>{e.preventDefault();R=Math.max(120,Math.min(700,R+e.deltaY*.5));upd();});
+}
+function buildArm(side,xoff){
+  const mats=JCOLORS.map(c=>new THREE.MeshLambertMaterial({color:c}));
+  const segs=[];
+  for(let i=0;i<6;i++){
+    const g=new THREE.CylinderGeometry(4,4,SEG[i+1],8);g.translate(0,SEG[i+1]/2,0);
+    const m=new THREE.Mesh(g,mats[i]);const p=new THREE.Object3D();p.add(m);segs.push({pivot:p,mesh:m});
+  }
+  let parent=scene;segs[0].pivot.position.set(xoff,10,0);
+  for(let i=0;i<6;i++){parent.add(segs[i].pivot);if(i<5){segs[i+1].pivot.position.set(0,SEG[i+1],0);segs[i].pivot.add(segs[i+1].pivot);}parent=segs[i].pivot;}
+  armMeshes[side]=segs;
+}
+function poseArm(side){
+  const v=armVals[side],s=armMeshes[side];if(!s||!s.length)return;
+  const r=d=>d*Math.PI/180*.9;
+  s[0].pivot.rotation.y=r(v.shoulder_pan||0);
+  s[1].pivot.rotation.z=-r(v.shoulder_lift||0);
+  s[2].pivot.rotation.z=-r(v.elbow_flex||0);
+  s[3].pivot.rotation.z=-r(v.wrist_flex||0);
+  s[4].pivot.rotation.y=r(v.wrist_roll||0);
+  s[5].mesh.scale.y=.5+.5*(100-(v.gripper||0))/100;
+}
+function animate(){requestAnimationFrame(animate);poseArm('left');poseArm('right');renderer.render(scene,camera);}
+
+// ── Joint panels ────────────────────────────────────────────────────────────
+function buildPanel(side){
+  const p=document.getElementById('panel_'+side);p.innerHTML='';
+  JOINTS.forEach((j,i)=>{
+    const row=document.createElement('div');row.className='jr'+(i===0?' sel':'');row.id=`jr_${side}_${j}`;
+    row.onclick=()=>selJoint(i);
+    row.innerHTML=`<div class="jdot" style="background:${JCOLORS[i]}"></div><span class="jname">${JLABELS[i]}</span>
+      <span class="jval" id="jv_${side}_${j}">0°</span>
+      <div class="jbtns"><button class="jb" id="jm_${side}_${j}">−</button><button class="jb" id="jp_${side}_${j}">+</button></div>`;
+    p.appendChild(row);
+  });
+  JOINTS.forEach((j,i)=>{
+    let iv;const m=document.getElementById(`jm_${side}_${j}`),pl=document.getElementById(`jp_${side}_${j}`);
+    const st=d=>{clearInterval(iv);selJoint(i);adj(side,j,d);iv=setInterval(()=>adj(side,j,d),80);};
+    const sp=()=>clearInterval(iv);
+    m.addEventListener('pointerdown',e=>{e.preventDefault();st(-5)});m.addEventListener('pointerup',sp);m.addEventListener('pointerleave',sp);
+    pl.addEventListener('pointerdown',e=>{e.preventDefault();st(5)});pl.addEventListener('pointerup',sp);pl.addEventListener('pointerleave',sp);
+  });
+}
+function selJoint(i){['left','right'].forEach(s=>JOINTS.forEach((j,k)=>document.getElementById(`jr_${s}_${j}`)?.classList.toggle('sel',k===i)));}
+async function adj(side,joint,d){
+  armVals[side][joint]=Math.max(-100,Math.min(100,(armVals[side][joint]||0)+d));
+  document.getElementById(`jv_${side}_${joint}`).innerText=armVals[side][joint].toFixed(0)+'°';
+  await fetch('/arm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({side,joint,value:armVals[side][joint]})});
+}
+function showArm(side,el){document.querySelectorAll('.arm-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.arm-panel').forEach(p=>p.classList.remove('active'));el.classList.add('active');document.getElementById('panel_'+side).classList.add('active');}
+buildPanel('left');buildPanel('right');
+
+// ── Base control ──────────────────────────────────────────────────────────────
+let actC=null,cIv=null;
+function startC(c){if(actC===c)return;stopC();actC=c;document.getElementById(c)?.classList.add('on');sendC(c);cIv=setInterval(()=>sendC(c),80);}
+function stopC(){if(actC)document.getElementById(actC)?.classList.remove('on');actC=null;clearInterval(cIv);sendC('stop');}
+async function sendC(c){try{const r=await fetch('/base',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd:c})});const d=await r.json();document.getElementById('spd_v').innerText=(d.speed||.3).toFixed(2)+' m/s';const lh=d.lift||0;document.getElementById('lift_v').innerText=lh.toFixed(1);document.getElementById('lift_bar').style.height=Math.max(0,Math.min(100,lh/6))+'%';}catch(e){}}
+['w','s','a','d','z','x','u','j','stop'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('pointerdown',e=>{e.preventDefault();startC(id)});el.addEventListener('pointerup',e=>{e.preventDefault();stopC()});el.addEventListener('pointerleave',e=>{if(actC===id)stopC()});});
+['r','f'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>sendC(id)));
+document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['w','s','a','d','z','x','u','j','r','f'].includes(k)){e.preventDefault();startC(k);}});
+document.addEventListener('keyup',()=>stopC());
+
+// ── Map / waypoints ───────────────────────────────────────────────────────────
+let waypoints=[],odom={x:0,y:0,theta:0},wpActive=false,wpIdx=0;
+const SCALE=50; // px per meter
+function drawMap(){
+  const c=document.getElementById('map-canvas');if(!c)return;
+  c.width=c.clientWidth;c.height=400;
+  const ctx=c.getContext('2d');const W=c.width,H=c.height,cx=W/2,cy=H/2;
+  ctx.fillStyle='#070b12';ctx.fillRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle='#131822';ctx.lineWidth=1;
+  for(let x=cx%SCALE;x<W;x+=SCALE){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=cy%SCALE;y<H;y+=SCALE){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // axes
+  ctx.strokeStyle='#253040';ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,H);ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.stroke();
+  // waypoint path
+  ctx.strokeStyle='#2a6040';ctx.lineWidth=2;ctx.beginPath();
+  waypoints.forEach((w,i)=>{const px=cx+w.x*SCALE,py=cy-w.y*SCALE;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.stroke();
+  // waypoints
+  waypoints.forEach((w,i)=>{const px=cx+w.x*SCALE,py=cy-w.y*SCALE;
+    ctx.fillStyle=i===wpIdx&&wpActive?'#4f8':'#4a9eff';ctx.beginPath();ctx.arc(px,py,7,0,7);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='10px monospace';ctx.fillText(i+1,px-3,py+3);});
+  // robot
+  const rx=cx+odom.x*SCALE,ry=cy-odom.y*SCALE,th=odom.theta*Math.PI/180;
+  ctx.save();ctx.translate(rx,ry);ctx.rotate(-th);
+  ctx.fillStyle='#4a9eff';ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(-8,-9);ctx.lineTo(-8,9);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+}
+document.getElementById('map-canvas').addEventListener('click',e=>{
+  const c=e.target,rect=c.getBoundingClientRect();const cx=c.width/2,cy=c.height/2;
+  const x=(e.clientX-rect.left-cx)/SCALE,y=-(e.clientY-rect.top-cy)/SCALE;
+  fetch('/waypoints',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'add',x,y})});
+});
+function wp(action){fetch('/waypoints',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});}
+
+// ── Inference ─────────────────────────────────────────────────────────────────
+function infer(action){
+  const model=document.getElementById('model_path').value;
+  if(action==='start'&&!model){alert('Select or enter a model path first');return;}
+  fetch('/inference',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,model})});
+}
+async function loadCheckpoints(){
+  try{
+    const list=await(await fetch('/checkpoints')).json();
+    const sel=document.getElementById('model_select');
+    sel.innerHTML='<option value="">— select trained model —</option>'+
+      list.map(p=>`<option value="${p}">${p.split(/[\\\\/]/).slice(-4).join('/')}</option>`).join('');
+    if(!list.length)sel.innerHTML+='<option value="" disabled>(no checkpoints found — train a model first)</option>';
+  }catch(e){}
+}
+loadCheckpoints();
+
+// ── Cameras ───────────────────────────────────────────────────────────────────
+function renderCams(names){
+  if(JSON.stringify(names)===JSON.stringify(camList))return;
+  camList=names;
+  const grid=document.getElementById('cam_grid');
+  if(!names.length){grid.innerHTML='<div class="cam-empty">No cameras enabled on robot. Edit config_lekiwi.py to enable.</div>';
+    document.getElementById('drive_cam').innerHTML='<div class="cam-empty">No camera feed</div>';
+    return;}
+  grid.innerHTML=names.map(n=>`<div class="cam-box"><div class="cam-label">${n}</div><img src="/camera/${n}" alt="${n}"></div>`).join('');
+  // drive view shows first cam
+  const first=names[0];
+  document.getElementById('drive_cam').innerHTML=`<div class="cam-label">${first}</div><img src="/camera/${first}">`;
+  document.getElementById('ai_cam').innerHTML=`<div class="cam-label">${first}</div><img src="/camera/${first}">`;
+}
+
+// ── Status poll ───────────────────────────────────────────────────────────────
+setInterval(async()=>{
+  try{
+    const d=await(await fetch('/status')).json();
+    document.getElementById('dot').className='dot'+(d.connected?' ok':'');
+    document.getElementById('conn').innerText=d.connected?'Connected':'No robot';
+    document.getElementById('gp').innerText=d.gamepad!=='none'?'🎮 '+d.gamepad:'';
+    const lh=d.lift||0;
+    document.getElementById('lift_v').innerText=lh.toFixed(1);
+    document.getElementById('lift_bar').style.height=Math.max(0,Math.min(100,lh/6))+'%';
+    document.getElementById('spd_v').innerText=(d.speed||.3).toFixed(2)+' m/s';
+    // arms
+    if(d.arms){['left','right'].forEach(side=>JOINTS.forEach(j=>{
+      const v=d.arms[side]?.[j];
+      if(v!==undefined&&Math.abs((armVals[side][j]||0)-v)>.3){armVals[side][j]=v;const el=document.getElementById(`jv_${side}_${j}`);if(el)el.innerText=v.toFixed(0)+'°';}
+    }));}
+    // odom + waypoints
+    odom=d.odom||odom;waypoints=d.waypoints||[];wpActive=d.waypoint_active;wpIdx=d.waypoint_idx||0;
+    document.getElementById('odom_txt').innerText=`${odom.x.toFixed(2)},${odom.y.toFixed(2)},${odom.theta.toFixed(0)}°`;
+    if(document.getElementById('view_map').classList.contains('active'))drawMap();
+    // waypoint list
+    const wl=document.getElementById('wp_list');
+    if(waypoints.length)wl.innerHTML=waypoints.map((w,i)=>`<div class="wp-item${i===wpIdx&&wpActive?' active':''}"><b>${i+1}</b> · x:${w.x.toFixed(2)} y:${w.y.toFixed(2)}</div>`).join('');
+    else wl.innerHTML='<div style="color:#3a4a60;font-size:12px;padding:20px;text-align:center">Click on map to add waypoints</div>';
+    // cameras
+    renderCams(d.cameras||[]);
+    // inference
+    const is=document.getElementById('infer_status');
+    is.className='infer-status '+(d.inference_mode?'running':'idle');
+    is.innerText='Inference: '+(d.inference_status||'idle').toUpperCase();
+    // ai joints
+    if(d.arms)document.getElementById('ai_joints').innerText='L: '+JOINTS.map(j=>(d.arms.left[j]||0).toFixed(0)).join(', ')+' | R: '+JOINTS.map(j=>(d.arms.right[j]||0).toFixed(0)).join(', ');
+  }catch(e){}
+},200);
+</script>
+</body>
+</html>
