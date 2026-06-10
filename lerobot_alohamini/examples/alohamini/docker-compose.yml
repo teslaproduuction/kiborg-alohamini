@@ -1,0 +1,30 @@
+# AlohaMini web pendant — docker compose
+#
+#   docker compose up --build           # real robot (set ROBOT_IP below)
+#   DEMO_CAMERAS=1 docker compose up     # synthetic cameras, no robot
+#
+# Open http://localhost:8080  (settings: /settings)
+
+services:
+  pendant:
+    build:
+      context: .
+      dockerfile: Dockerfile.controller
+    image: alohamini-pendant
+    container_name: alohamini-pendant
+    ports:
+      - "8080:8080"
+    environment:
+      ROBOT_IP: "${ROBOT_IP:-192.168.31.170}"
+      CMD_PORT: "5555"
+      OBS_PORT: "5556"
+      WEB_PORT: "8080"
+      DEMO_CAMERAS: "${DEMO_CAMERAS:-0}"
+      SDL_AUDIODRIVER: "dummy"
+      SDL_VIDEODRIVER: "dummy"
+    volumes:
+      - ./recordings:/app/recordings   # persist recorded demos
+      - ./gamepad_bindings.json:/app/gamepad_bindings.json
+    devices:
+      - "/dev/input:/dev/input"        # gamepad passthrough (Linux host)
+    restart: unless-stopped

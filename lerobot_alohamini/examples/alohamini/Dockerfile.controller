@@ -1,0 +1,44 @@
+# Web pendant for AlohaMini — camera feeds, 3D arms, map/routes, recording,
+# AI control, RadioMaster gamepad binding. Lightweight (no torch/lerobot).
+#
+# Build:
+#   docker build -f Dockerfile.controller -t alohamini-pendant .
+#
+# Run (talks to Pi over LAN; gamepad needs host input devices):
+#   docker run --rm -p 8080:8080 \
+#     -e ROBOT_IP=192.168.31.170 \
+#     --device /dev/input \
+#     -v "$PWD/recordings:/app/recordings" \
+#     alohamini-pendant
+#
+# Demo without a robot (synthetic camera video):
+#   docker run --rm -p 8080:8080 -e DEMO_CAMERAS=1 alohamini-pendant
+#
+# Open http://localhost:8080
+
+FROM python:3.12-slim
+
+# SDL deps for pygame (gamepad). Headless — no display needed.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 \
+        libfreetype6 libportmidi0 libjpeg62-turbo \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements-controller.txt .
+RUN pip install --no-cache-dir -r requirements-controller.txt
+
+# Controller + UI
+COPY controller_v3.py ui_main.html convert_recording.py ./
+COPY gamepad_bindings.json ./
+# controller reads SETTINGS_HTML from controller_v2.py — include it
+COPY controller_v2.py ./
+
+ENV ROBOT_IP=192.168.31.170 \
+    WEB_PORT=8080 \
+    SDL_AUDIODRIVER=dummy \
+    SDL_VIDEODRIVER=dummy
+
+EXPOSE 8080
+CMD ["python", "controller_v3.py"]

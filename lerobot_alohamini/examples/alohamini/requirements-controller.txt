@@ -1,0 +1,6 @@
+# Web pendant (controller_v3.py) — lightweight, no torch/lerobot needed.
+flask>=3.0
+pyzmq>=26
+pygame>=2.5
+pillow>=10
+numpy>=1.26
