@@ -87,6 +87,9 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
   <h1>🤖 AlohaMini</h1>
   <span><span class="dot" id="dot"></span><span id="conn">Connecting…</span></span>
   <span id="gp" style="color:#fa0;font-size:11px"></span>
+  <span id="arm-gp" style="color:#a0f0a0;font-size:11px"></span>
+  <span id="arm-side-top" style="font-size:11px;padding:2px 8px;border-radius:8px;background:#1a3050;color:#58a6ff;display:none"></span>
+  <a class="nav" href="/arm_settings" style="margin-left:8px">🕹️ PS4 Arms</a>
   <a class="nav" href="/settings" style="margin-left:auto">🎮 Controller</a>
 </div>
 
@@ -145,7 +148,9 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
       <div id="viewer"></div>
     </div>
     <div class="card">
-      <div class="card-title">Joint Control</div>
+      <div class="card-title">Joint Control
+        <span id="arm-ctrl-info" style="font-size:11px;margin-left:10px;color:#6a7a95"></span>
+      </div>
       <div class="arm-sel">
         <div class="arm-tab active" onclick="showArm('left',this)">◄ LEFT</div>
         <div class="arm-tab" onclick="showArm('right',this)">RIGHT ►</div>
@@ -432,10 +437,26 @@ setInterval(async()=>{
     document.getElementById('dot').className='dot'+(d.connected?' ok':'');
     document.getElementById('conn').innerText=d.connected?'Connected':'No robot';
     document.getElementById('gp').innerText=d.gamepad!=='none'?'🎮 '+d.gamepad:'';
+    // Arm gamepad (PS4)
+    const agp=document.getElementById('arm-gp');
+    const ast=document.getElementById('arm-side-top');
+    const agpName=d.arm_gamepad||'none';
+    agp.innerText=agpName!=='none'?'🕹️ '+agpName:'';
+    if(agpName!=='none'){
+      const side=d.arm_control_side||'left';
+      ast.innerText='ARM: '+side.toUpperCase();
+      ast.style.display='inline';
+      ast.style.background=side==='left'?'#1a3050':side==='right'?'#2d1a40':'#1a3028';
+      ast.style.color=side==='left'?'#58a6ff':side==='right'?'#bc8cff':'#3fb950';
+    } else {ast.style.display='none';}
     const lh=d.lift||0;
     document.getElementById('lift_v').innerText=lh.toFixed(1);
     document.getElementById('lift_bar').style.height=Math.max(0,Math.min(100,lh/6))+'%';
     document.getElementById('spd_v').innerText=(d.speed||.3).toFixed(2)+' m/s';
+    // arm ctrl info
+    const aci=document.getElementById('arm-ctrl-info');
+    if(aci&&agpName!=='none'){aci.innerText=`PS4 → ${(d.arm_control_side||'left').toUpperCase()} · spd ${(d.arm_speed||2.0).toFixed(1)}`;}
+    else if(aci){aci.innerText='';}
     // arms
     if(d.arms){['left','right'].forEach(side=>JOINTS.forEach(j=>{
       const v=d.arms[side]?.[j];
