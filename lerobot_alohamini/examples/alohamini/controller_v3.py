@@ -13,11 +13,11 @@ import zmq
 import pygame
 from flask import Flask, request, jsonify, Response, send_from_directory
 
-# ── Config ────────────────────────────────────────────────────────────────────
-REMOTE_IP  = "192.168.31.170"
-CMD_PORT   = 5555
-OBS_PORT   = 5556
-WEB_PORT   = 8080
+# ── Config (env-overridable for Docker) ──────────────────────────────────────
+REMOTE_IP  = os.environ.get("ROBOT_IP", "192.168.31.170")
+CMD_PORT   = int(os.environ.get("CMD_PORT", 5555))
+OBS_PORT   = int(os.environ.get("OBS_PORT", 5556))
+WEB_PORT   = int(os.environ.get("WEB_PORT", 8080))
 BINDINGS_FILE = Path(__file__).parent / "gamepad_bindings.json"
 MESH_DIR   = Path(r"D:\Проекты\Kiborg\AlohaMini\simulation\src\Aloha\meshes")
 
@@ -155,6 +155,46 @@ def obs_loop():
             time.sleep(0.05)
 
 threading.Thread(target=obs_loop, daemon=True).start()
+
+# ── Demo cameras (synthetic video for testing without a robot) ────────────────
+# Enable with env DEMO_CAMERAS=1 — generates moving test patterns so the
+# Cameras tab shows live video even when the Pi is offline.
+def demo_camera_loop():
+    import io
+    from PIL import Image, ImageDraw
+    cams = ["front", "wrist_left", "wrist_right"]
+    w, h = 640, 480
+    frame = 0
+    while True:
+        t = time.time()
+        for ci, cam in enumerate(cams):
+            img = Image.new("RGB", (w, h), (12, 16, 26))
+            d = ImageDraw.Draw(img)
+            # grid
+            for x in range(0, w, 40): d.line([(x,0),(x,h)], fill=(26,32,48))
+            for y in range(0, h, 40): d.line([(0,y),(w,y)], fill=(26,32,48))
+            # moving box (different phase per cam)
+            import math as _m
+            bx = int(w/2 + _m.sin(t*1.5 + ci*2) * (w/3))
+            by = int(h/2 + _m.cos(t*1.2 + ci*2) * (h/3))
+            col = [(74,158,255),(80,255,120),(255,170,80)][ci % 3]
+            d.ellipse([bx-30,by-30,bx+30,by+30], fill=col)
+            # labels
+            d.rectangle([0,0,w,30], fill=(0,0,0))
+            d.text((8,8), f"DEMO · {cam} · frame {frame} · {time.strftime('%H:%M:%S')}", fill=col)
+            d.text((8,h-22), "synthetic feed (no robot) — set DEMO_CAMERAS=0 for real", fill=(90,110,140))
+            buf = io.BytesIO(); img.save(buf, format="JPEG", quality=80)
+            b64 = base64.b64encode(buf.getvalue()).decode()
+            with lock:
+                state["cameras"][cam] = b64
+                if cam not in state["camera_names"]:
+                    state["camera_names"] = cams
+        frame += 1
+        time.sleep(1/15)
+
+if os.environ.get("DEMO_CAMERAS") == "1":
+    threading.Thread(target=demo_camera_loop, daemon=True).start()
+    print("[Demo] synthetic camera feeds ON (DEMO_CAMERAS=1)")
 
 # ── Recording ─────────────────────────────────────────────────────────────────
 _rec_fh = None      # open jsonl file handle
