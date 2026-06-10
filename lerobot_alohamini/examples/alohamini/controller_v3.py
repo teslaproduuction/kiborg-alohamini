@@ -18,7 +18,8 @@ REMOTE_IP  = os.environ.get("ROBOT_IP", "192.168.31.170")
 CMD_PORT   = int(os.environ.get("CMD_PORT", 5555))
 OBS_PORT   = int(os.environ.get("OBS_PORT", 5556))
 WEB_PORT   = int(os.environ.get("WEB_PORT", 8080))
-BINDINGS_FILE = Path(__file__).parent / "gamepad_bindings.json"
+BINDINGS_FILE     = Path(__file__).parent / "gamepad_bindings.json"
+ARM_BINDINGS_FILE = Path(__file__).parent / "arm_bindings.json"
 MESH_DIR   = Path(r"D:\Проекты\Kiborg\AlohaMini\simulation\src\Aloha\meshes")
 
 # ── ZMQ ───────────────────────────────────────────────────────────────────────
@@ -41,10 +42,15 @@ state = {
     "arm_left":       {j:0.0 for j in ARM_JOINTS},
     "arm_right":      {j:0.0 for j in ARM_JOINTS},
     "selected_joint": 0,
-    "gamepad_name":   "none",
-    "gamepad_axes":   {},
-    "gamepad_buttons":{},
-    "connected":      False,
+    "gamepad_name":     "none",
+    "gamepad_axes":     {},
+    "gamepad_buttons":  {},
+    # Arm gamepad (PS4, second device)
+    "arm_gamepad_name": "none",
+    "arm_gamepad_axes": {},
+    "arm_gamepad_buttons": {},
+    "arm_control_side": "left",   # "left" | "right" | "both"
+    "connected":        False,
     # Cameras: name → base64 jpeg
     "cameras":        {},
     "camera_names":   [],
@@ -89,6 +95,31 @@ DEFAULT_BINDINGS = {
     },
 }
 
+# ── PS4 arm bindings defaults ─────────────────────────────────────────────────
+# PS4 axes (pygame): 0=LX 1=LY 2=RX 3=RY 4=L2(-1..+1) 5=R2(-1..+1)
+# PS4 buttons: 0=Cross 1=Circle 2=Square 3=Triangle 4=L1 5=R1 9=Options
+DEFAULT_ARM_BINDINGS = {
+    "device_index": 1,          # second connected gamepad
+    "arm_speed":    2.0,        # deg/frame at full stick deflection
+    "axes": {
+        "0": {"joint":"shoulder_pan",  "invert":False,"deadzone":0.12,"scale":1.0},
+        "1": {"joint":"shoulder_lift", "invert":True, "deadzone":0.12,"scale":1.0},
+        "2": {"joint":"elbow_flex",    "invert":False,"deadzone":0.12,"scale":1.0},
+        "3": {"joint":"wrist_flex",    "invert":True, "deadzone":0.12,"scale":1.0},
+    },
+    "trigger_l2": 4,    # L2 → wrist_roll negative
+    "trigger_r2": 5,    # R2 → wrist_roll positive
+    "buttons": {
+        "4": {"action":"gripper_close"},   # L1 held
+        "5": {"action":"gripper_open"},    # R1 held
+        "2": {"action":"switch_left"},     # Square
+        "3": {"action":"switch_right"},    # Triangle
+        "0": {"action":"switch_cycle"},    # Cross → cycles left/right/both
+        "1": {"action":"speed_up"},        # Circle
+        "9": {"action":"home_arms"},       # Options
+    },
+}
+
 bindings = {}
 def load_bindings():
     global bindings
@@ -99,6 +130,17 @@ def load_bindings():
 def save_bindings():
     BINDINGS_FILE.write_text(json.dumps(bindings, indent=2))
 load_bindings()
+
+arm_bindings = {}
+def load_arm_bindings():
+    global arm_bindings
+    if ARM_BINDINGS_FILE.exists():
+        try: arm_bindings = json.loads(ARM_BINDINGS_FILE.read_text()); return
+        except: pass
+    arm_bindings = json.loads(json.dumps(DEFAULT_ARM_BINDINGS))
+def save_arm_bindings():
+    ARM_BINDINGS_FILE.write_text(json.dumps(arm_bindings, indent=2))
+load_arm_bindings()
 
 # ── Action builder ────────────────────────────────────────────────────────────
 def build_action():
@@ -313,57 +355,148 @@ def send_loop():
 
 threading.Thread(target=send_loop, daemon=True).start()
 
-# ── Gamepad thread ────────────────────────────────────────────────────────────
+# ── Gamepad thread (base RadioMaster + PS4 arms, merged) ─────────────────────
 def apply_dz(v, dz):
     if abs(v) < dz: return 0.0
     return (v - math.copysign(dz, v)) / (1.0 - dz)
 
+_SIDE_CYCLE = ["left", "right", "both"]
+
 def gamepad_loop():
     pygame.init(); pygame.joystick.init()
-    last_btns = {}; last_count = 0
+    last_btns = {}; arm_last_btns = {}; last_count = -1
     while True:
         pygame.joystick.quit(); pygame.joystick.init()
         count = pygame.joystick.get_count()
-        if count == 0:
-            if last_count != 0:
-                with lock: state["gamepad_name"]="none"; state["gamepad_axes"]={}; state["gamepad_buttons"]={}
-            last_count = 0; time.sleep(1); continue
+        arm_idx = arm_bindings.get("device_index", 1)
         if count != last_count:
             print(f"[Gamepad] {count} device(s) detected")
         last_count = count
-        joy = pygame.joystick.Joystick(0); joy.init()
-        with lock: state["gamepad_name"] = joy.get_name()
+
+        # Init base gamepad (index 0)
+        joy_base = None
+        if count > 0:
+            joy_base = pygame.joystick.Joystick(0); joy_base.init()
+            with lock: state["gamepad_name"] = joy_base.get_name()
+        else:
+            with lock: state["gamepad_name"]="none"; state["gamepad_axes"]={}; state["gamepad_buttons"]={}
+
+        # Init arm gamepad (configurable index, default 1)
+        joy_arm = None
+        if count > arm_idx:
+            joy_arm = pygame.joystick.Joystick(arm_idx); joy_arm.init()
+            with lock: state["arm_gamepad_name"] = joy_arm.get_name()
+            print(f"[ArmGamepad] device {arm_idx}: {joy_arm.get_name()}")
+        else:
+            with lock: state["arm_gamepad_name"]="none"; state["arm_gamepad_axes"]={}; state["arm_gamepad_buttons"]={}
+
+        if not joy_base and not joy_arm:
+            time.sleep(1); continue
+
         try:
             while True:
                 pygame.event.pump()
-                axes = {str(i): round(joy.get_axis(i),4) for i in range(joy.get_numaxes())}
-                btns = {str(i): bool(joy.get_button(i)) for i in range(joy.get_numbuttons())}
-                with lock: state["gamepad_axes"]=axes; state["gamepad_buttons"]=btns
-                with lock: sp=state["base_speed"]; rs=state["rot_speed"]; lh=state["lift_height"]; sel=state["selected_joint"]
-                nx=ny=nth=0.0; nlh=lh
-                for ai,cfg in bindings.get("axes",{}).items():
-                    raw=float(axes.get(ai,0)); v=apply_dz(raw,cfg.get("deadzone",.1))*cfg.get("scale",1)
-                    if cfg.get("invert"): v=-v
-                    act=cfg.get("action","none")
-                    if act=="x_vel": nx=v*sp
-                    elif act=="y_vel": ny=v*sp
-                    elif act=="theta_vel": nth=v*rs
-                    elif act=="lift" and abs(v)>.05: nlh=max(0,lh-v*3)
-                    elif act in("arm_left","arm_right") and abs(v)>.05:
-                        j=ARM_JOINTS[sel]; side="arm_left" if act=="arm_left" else "arm_right"
-                        with lock: state[side][j]=max(-100,min(100,state[side][j]+v*2))
-                with lock: state["base_cmd"]={"x":nx,"y":ny,"theta":nth}; state["lift_height"]=nlh
-                for bi,cfg in bindings.get("buttons",{}).items():
-                    cur=btns.get(bi,False); prev=last_btns.get(bi,False)
-                    if cur and not prev:
+
+                # ── Base gamepad (RadioMaster) ────────────────────────────
+                if joy_base:
+                    axes = {str(i): round(joy_base.get_axis(i),4) for i in range(joy_base.get_numaxes())}
+                    btns = {str(i): bool(joy_base.get_button(i)) for i in range(joy_base.get_numbuttons())}
+                    with lock:
+                        state["gamepad_axes"]=axes; state["gamepad_buttons"]=btns
+                        sp=state["base_speed"]; rs=state["rot_speed"]
+                        lh=state["lift_height"]; sel=state["selected_joint"]
+                    nx=ny=nth=0.0; nlh=lh
+                    for ai,cfg in bindings.get("axes",{}).items():
+                        raw=float(axes.get(ai,0)); v=apply_dz(raw,cfg.get("deadzone",.1))*cfg.get("scale",1)
+                        if cfg.get("invert"): v=-v
                         act=cfg.get("action","none")
-                        with lock:
-                            if act=="joint_next": state["selected_joint"]=(sel+1)%len(ARM_JOINTS)
-                            elif act=="joint_prev": state["selected_joint"]=(sel-1)%len(ARM_JOINTS)
-                            elif act=="speed_up": state["base_speed"]=min(1.0,sp+.05)
-                            elif act=="speed_down": state["base_speed"]=max(.05,sp-.05)
-                            elif act=="stop_base": state["base_cmd"]={"x":0,"y":0,"theta":0}
-                last_btns=dict(btns); time.sleep(1/60)
+                        if act=="x_vel": nx=v*sp
+                        elif act=="y_vel": ny=v*sp
+                        elif act=="theta_vel": nth=v*rs
+                        elif act=="lift" and abs(v)>.05: nlh=max(0,lh-v*3)
+                        elif act in("arm_left","arm_right") and abs(v)>.05:
+                            j=ARM_JOINTS[sel]; side="arm_left" if act=="arm_left" else "arm_right"
+                            with lock: state[side][j]=max(-100,min(100,state[side][j]+v*2))
+                    with lock: state["base_cmd"]={"x":nx,"y":ny,"theta":nth}; state["lift_height"]=nlh
+                    for bi,cfg in bindings.get("buttons",{}).items():
+                        cur=btns.get(bi,False); prev=last_btns.get(bi,False)
+                        if cur and not prev:
+                            act=cfg.get("action","none")
+                            with lock:
+                                if act=="joint_next": state["selected_joint"]=(sel+1)%len(ARM_JOINTS)
+                                elif act=="joint_prev": state["selected_joint"]=(sel-1)%len(ARM_JOINTS)
+                                elif act=="speed_up": state["base_speed"]=min(1.0,sp+.05)
+                                elif act=="speed_down": state["base_speed"]=max(.05,sp-.05)
+                                elif act=="stop_base": state["base_cmd"]={"x":0,"y":0,"theta":0}
+                    last_btns=dict(btns)
+
+                # ── Arm gamepad (PS4) ─────────────────────────────────────
+                if joy_arm:
+                    a_axes = {str(i): round(joy_arm.get_axis(i),4) for i in range(joy_arm.get_numaxes())}
+                    a_btns = {str(i): bool(joy_arm.get_button(i)) for i in range(joy_arm.get_numbuttons())}
+                    with lock:
+                        state["arm_gamepad_axes"]=a_axes; state["arm_gamepad_buttons"]=a_btns
+                        asp = arm_bindings.get("arm_speed", 2.0)
+                        side = state["arm_control_side"]
+
+                    # Sticks → joint deltas (joints 1-4)
+                    deltas = {j: 0.0 for j in ARM_JOINTS}
+                    for ai, cfg in arm_bindings.get("axes", {}).items():
+                        raw = float(a_axes.get(ai, 0))
+                        v = apply_dz(raw, cfg.get("deadzone", 0.12)) * cfg.get("scale", 1.0)
+                        if cfg.get("invert"): v = -v
+                        joint = cfg.get("joint")
+                        if joint in deltas: deltas[joint] += v * asp
+
+                    # L2/R2 → wrist_roll differential  (rest=-1 → normalized 0..1)
+                    l2_v = float(a_axes.get(str(arm_bindings.get("trigger_l2",4)), -1.0))
+                    r2_v = float(a_axes.get(str(arm_bindings.get("trigger_r2",5)), -1.0))
+                    l2 = max(0.0, (l2_v + 1.0) / 2.0)
+                    r2 = max(0.0, (r2_v + 1.0) / 2.0)
+                    wr = (r2 - l2) * asp * 0.8
+                    if abs(wr) > 0.01: deltas["wrist_roll"] = wr
+
+                    sides = ["arm_left","arm_right"] if side=="both" else [f"arm_{side}"]
+                    with lock:
+                        for s in sides:
+                            for j, d in deltas.items():
+                                if j != "gripper" and abs(d) > 0.01:
+                                    state[s][j] = max(-100, min(100, state[s][j] + d))
+
+                    # Held buttons → gripper open/close
+                    for bi, cfg in arm_bindings.get("buttons", {}).items():
+                        if a_btns.get(bi, False):
+                            act = cfg.get("action","")
+                            with lock:
+                                for s in sides:
+                                    if act=="gripper_close":
+                                        state[s]["gripper"] = max(-100, state[s]["gripper"] - asp*0.8)
+                                    elif act=="gripper_open":
+                                        state[s]["gripper"] = min(100,  state[s]["gripper"] + asp*0.8)
+
+                    # Rising-edge button actions
+                    for bi, cfg in arm_bindings.get("buttons", {}).items():
+                        cur=a_btns.get(bi,False); prev=arm_last_btns.get(bi,False)
+                        if cur and not prev:
+                            act = cfg.get("action","")
+                            with lock:
+                                asp2 = arm_bindings.get("arm_speed", 2.0)
+                                cur_side = state["arm_control_side"]
+                                if act=="switch_left":    state["arm_control_side"]="left"
+                                elif act=="switch_right": state["arm_control_side"]="right"
+                                elif act=="switch_both":  state["arm_control_side"]="both"
+                                elif act=="switch_cycle":
+                                    nxt = _SIDE_CYCLE[(_SIDE_CYCLE.index(cur_side)+1) % len(_SIDE_CYCLE)]
+                                    state["arm_control_side"] = nxt
+                                    print(f"[ArmGamepad] arm control → {nxt}")
+                                elif act=="speed_up":   arm_bindings["arm_speed"]=min(10.0,asp2+0.5)
+                                elif act=="speed_down": arm_bindings["arm_speed"]=max(0.2, asp2-0.5)
+                                elif act=="home_arms":
+                                    state["arm_left"]  = {j:0.0 for j in ARM_JOINTS}
+                                    state["arm_right"] = {j:0.0 for j in ARM_JOINTS}
+                    arm_last_btns = dict(a_btns)
+
+                time.sleep(1/60)
         except Exception as e:
             print(f"[Gamepad] {e}"); time.sleep(1)
 
@@ -472,6 +605,11 @@ def status():
             selected_joint=state["selected_joint"],
             arms={"left":dict(state["arm_left"]),"right":dict(state["arm_right"])},
             gamepad_axes=state["gamepad_axes"], gamepad_buttons=state["gamepad_buttons"],
+            arm_gamepad=state["arm_gamepad_name"],
+            arm_gamepad_axes=state["arm_gamepad_axes"],
+            arm_gamepad_buttons=state["arm_gamepad_buttons"],
+            arm_control_side=state["arm_control_side"],
+            arm_speed=arm_bindings.get("arm_speed", 2.0),
             odom=dict(state["odom"]),
             cameras=state["camera_names"],
             inference_mode=state["inference_mode"],
@@ -484,6 +622,31 @@ def status():
             waypoint_active=state["waypoint_active"],
             waypoint_idx=state["waypoint_idx"],
         )
+
+@app.route('/arm/side', methods=['POST'])
+def arm_side():
+    side = request.json.get('side','left')
+    if side not in ('left','right','both'): return jsonify(error="invalid"), 400
+    with lock: state["arm_control_side"] = side
+    return jsonify(side=side)
+
+@app.route('/arm_bindings', methods=['GET'])
+def get_arm_bindings(): return jsonify(arm_bindings)
+
+@app.route('/arm_bindings', methods=['POST'])
+def set_arm_bindings():
+    global arm_bindings; arm_bindings=request.json; save_arm_bindings(); return jsonify(ok=True)
+
+@app.route('/arm_bindings/reset', methods=['POST'])
+def reset_arm_bindings():
+    global arm_bindings; arm_bindings=json.loads(json.dumps(DEFAULT_ARM_BINDINGS))
+    save_arm_bindings(); return jsonify(arm_bindings)
+
+@app.route('/arm_settings')
+def arm_settings_page():
+    p = Path(__file__).parent / "ui_arm_settings.html"
+    if p.exists(): return p.read_text(encoding="utf-8")
+    return "<h2>ui_arm_settings.html missing</h2>"
 
 @app.route('/bindings', methods=['GET'])
 def get_bindings(): return jsonify(bindings)
