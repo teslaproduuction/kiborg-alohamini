@@ -21,22 +21,22 @@ from ..config import RobotConfig
 
 
 def lekiwi_cameras_config() -> dict[str, CameraConfig]:
+    # Cameras confirmed working (uvcvideo quirks=0x80 bulk mode, 5x Microdia H65)
+    # video0=open(139), video2=covered, video4=dim(41), video6=covered, video8=open(106)
+    # Assign names once physical positions are known; use /dev/videoN paths directly.
     return {
-        # "forward": OpenCVCameraConfig(
-        #     index_or_path="/dev/am_camera_forward", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        # ),
-        # "backward": OpenCVCameraConfig(
-        #     index_or_path="/dev/am_camera_backward", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        # ),
-        # "chest": OpenCVCameraConfig(
-        #     index_or_path="/dev/am_camera_chest", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        # ),
-        # "wrist_left": OpenCVCameraConfig(
-        #     index_or_path="/dev/am_camera_wrist_left", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        # ),
-        # "wrist_right": OpenCVCameraConfig(
-        #     index_or_path="/dev/am_camera_wrist_right", fps=30, width=640, height=480, rotation=Cv2Rotation.NO_ROTATION
-        # ),
+        "front": OpenCVCameraConfig(
+            index_or_path="/dev/video0", fps=15, width=640, height=480,
+            rotation=Cv2Rotation.NO_ROTATION,
+        ),
+        "wrist_right": OpenCVCameraConfig(
+            index_or_path="/dev/video8", fps=15, width=640, height=480,
+            rotation=Cv2Rotation.NO_ROTATION,
+        ),
+        # Uncomment and adjust index once all cameras uncapped and positions identified:
+        # "wrist_left": OpenCVCameraConfig(index_or_path="/dev/video4", fps=15, width=640, height=480),
+        # "rear":       OpenCVCameraConfig(index_or_path="/dev/video2", fps=15, width=640, height=480),
+        # "top":        OpenCVCameraConfig(index_or_path="/dev/video6", fps=15, width=640, height=480),
     }
 
 
