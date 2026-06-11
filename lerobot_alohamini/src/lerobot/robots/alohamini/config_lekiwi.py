@@ -26,9 +26,10 @@ def lekiwi_cameras_config() -> dict[str, CameraConfig]:
     # Assign names once physical positions are known; use /dev/videoN paths directly.
     return {
         # H65 USB cameras: MJPG only, bulk mode (uvcvideo quirks=0x80)
-        # Cameras disabled in lekiwi_host — all streamed via robot_cam_server.py (ffmpeg)
-        # This avoids OpenCV/USB conflicts on the shared USB 2.0 hub.
-        # To re-enable: uncomment and set fourcc="MJPG", warmup_s=5
+        # video0 on direct USB 2.0 480M port — works well with OpenCV
+        "front": OpenCVCameraConfig(index_or_path="/dev/video0", fps=15, width=640, height=480, fourcc="MJPG", warmup_s=2),
+        # Other cameras on USB 1.1 12M hub — streamed via robot_cam_server.py (port 8091)
+        # Move hub to blue USB 3.0 port to enable all cameras here
         # Uncomment once cameras uncapped and positions identified:
         # "wrist_left": OpenCVCameraConfig(index_or_path="/dev/video4", fps=15, width=640, height=480, fourcc="MJPG"),
         # "rear":       OpenCVCameraConfig(index_or_path="/dev/video2", fps=15, width=640, height=480, fourcc="MJPG"),

@@ -148,10 +148,9 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
 <div class="view" id="view_cameras">
   <div class="card">
     <div class="card-title">Camera Feeds
-      <span style="font-size:11px;color:#3a5a80;margin-left:8px">ZMQ streams + direct MJPEG</span>
+      <span id="cam_count" style="font-size:11px;color:#3a6080;margin-left:8px">—</span>
     </div>
-    <div class="cam-grid" id="cam_grid"><div class="cam-empty">Waiting for camera streams from robot…</div></div>
-    <div class="cam-grid" id="rawcam_grid" style="margin-top:10px"></div>
+    <div class="cam-grid" id="cam_grid"><div class="cam-empty">Waiting for camera streams…</div></div>
   </div>
 </div>
 
@@ -435,81 +434,77 @@ let camLabels={};
 const ROBOT_PARTS=['front','rear','top','wrist_left','wrist_right','custom','—'];
 const PART_ICONS={front:'🔭',rear:'🔄',top:'⬆️',wrist_left:'🦾',wrist_right:'🦿',custom:'📌'};
 
-async function assignCamera(camName, part, note=''){
+async function assignCamera(key, part, note=''){
   await fetch('/camera_labels',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({camera:camName,part,note})});
-  camLabels[camName]={part,note};
-  updateCamBadge(camName);
+    body:JSON.stringify({camera:key,part,note})});
+  camLabels[key]={part,note};
+  const el=document.getElementById('badge_'+key);
+  if(el){el.className='cam-part-badge '+(part&&part!=='—'?'part-'+part:'');
+    el.textContent=part&&part!=='—'?((PART_ICONS[part]||'')+' '+part):(key.startsWith('rawcam_')?'video'+key.slice(7):key);}
 }
 
-function updateCamBadge(camName){
-  const lb=camLabels[camName];
-  const el=document.getElementById('badge_'+camName);
-  if(!el||!lb||!lb.part||lb.part==='—') return;
-  el.className='cam-part-badge part-'+lb.part;
-  el.textContent=(PART_ICONS[lb.part]||'')+(lb.note?' '+lb.note:' '+lb.part);
+function camBox(key, src, devLabel, labels){
+  const lb=labels[key]||{};
+  const sel=lb.part||'—';
+  const badge=lb.part&&lb.part!=='—'?`<span id="badge_${key}" class="cam-part-badge part-${lb.part}">${PART_ICONS[lb.part]||''} ${lb.part}</span>`
+    :`<span id="badge_${key}" class="cam-part-badge">${devLabel}</span>`;
+  return `<div class="cam-box">
+    <div class="cam-label">${badge}</div>
+    <img src="${src}" alt="${devLabel}" loading="lazy" onerror="this.style.opacity='0.3'">
+    <div class="cam-assign">
+      <label>Part</label>
+      <select onchange="assignCamera('${key}',this.value,'')">
+        ${ROBOT_PARTS.map(p=>`<option value="${p}"${p===sel?' selected':''}>${PART_ICONS[p]||''} ${p}</option>`).join('')}
+      </select>
+      <span style="font-size:10px;color:#304050;margin-left:4px">${devLabel}</span>
+    </div>
+  </div>`;
 }
 
-function renderCams(names, labels){
+let _lastCamSig='';
+function renderAllCams(zmqNames, rawDevs, labels){
   if(labels) camLabels=labels;
-  if(JSON.stringify(names)===JSON.stringify(camList))return;
-  camList=names;
+  const sig=JSON.stringify({zmqNames,rawDevs});
+  if(sig===_lastCamSig)return;
+  _lastCamSig=sig;
+
   const grid=document.getElementById('cam_grid');
-  if(!names.length){grid.innerHTML='<div class="cam-empty">No cameras enabled on robot.<br>Edit config_lekiwi.py to enable.</div>';
-    document.getElementById('drive_cam').innerHTML='<div class="cam-empty">No camera feed</div>';
-    return;}
+  const total=(zmqNames||[]).length+(rawDevs||[]).length;
+  const cc=document.getElementById('cam_count');
+  if(cc) cc.textContent=total?`${total} camera${total>1?'s':''}`:'no cameras';
 
-  const partOpts=ROBOT_PARTS.map(p=>`<option value="${p}">${(PART_ICONS[p]||'')} ${p}</option>`).join('');
-  grid.innerHTML=names.map(n=>{
-    const lb=camLabels[n]||{};
-    const sel=lb.part||'—';
-    return `<div class="cam-box">
-      <div class="cam-label"><span id="badge_${n}" class="cam-part-badge ${lb.part?'part-'+lb.part:''}">${lb.part?((PART_ICONS[lb.part]||'')+' '+lb.part):n}</span></div>
-      <img src="/camera/${n}" alt="${n}" loading="lazy">
-      <div class="cam-assign">
-        <label>Part</label>
-        <select onchange="assignCamera('${n}',this.value,document.getElementById('note_${n}').value)">
-          ${ROBOT_PARTS.map(p=>`<option value="${p}"${p===sel?' selected':''}>${(PART_ICONS[p]||'')} ${p}</option>`).join('')}
-        </select>
-        <input id="note_${n}" placeholder="note" value="${lb.note||''}"
-          onchange="assignCamera('${n}',document.getElementById('part_${n}') ? document.getElementById('part_${n}').value : '${sel}',this.value)"
-          style="width:70px">
-      </div>
-    </div>`;
-  }).join('');
+  if(!total){
+    grid.innerHTML='<div class="cam-empty">No cameras. Check robot connection.</div>';
+    document.getElementById('drive_cam').innerHTML='<div class="cam-empty">No camera</div>';
+    return;
+  }
 
-  // drive view shows first cam with part label
-  const first=names[0];
-  const fl=camLabels[first]||{};
-  const flabel=fl.part?`${PART_ICONS[fl.part]||''} ${fl.part}`:first;
-  document.getElementById('drive_cam').innerHTML=`<div class="cam-label">${flabel}</div><img src="/camera/${first}">`;
-  document.getElementById('ai_cam').innerHTML=`<div class="cam-label">${flabel}</div><img src="/camera/${first}">`;
-}
-
-let rawCamList=[];
-function renderRawCams(devs){
-  if(JSON.stringify(devs)===JSON.stringify(rawCamList))return;
-  rawCamList=devs;
-  const grid=document.getElementById('rawcam_grid');
-  if(!devs||!devs.length){grid.innerHTML='';return;}
-  const partOpts=ROBOT_PARTS.map(p=>`<option value="${p}">${(PART_ICONS[p]||'')} ${p}</option>`).join('');
-  grid.innerHTML=devs.map(idx=>{
+  let html='';
+  (zmqNames||[]).forEach(n=>{
+    html+=camBox(n, `/camera/${n}`, n, camLabels);
+  });
+  (rawDevs||[]).forEach(idx=>{
     const key=`rawcam_${idx}`;
-    const lb=camLabels[key]||{};
-    const sel=lb.part||'—';
-    return `<div class="cam-box">
-      <div class="cam-label"><span id="badge_${key}" class="cam-part-badge ${lb.part?'part-'+lb.part:''}">${lb.part?((PART_ICONS[lb.part]||'')+' '+lb.part):'video'+idx}</span></div>
-      <img src="/rawcam/${idx}" alt="video${idx}" loading="lazy" onerror="this.style.display='none'">
-      <div class="cam-assign">
-        <label>Part</label>
-        <select onchange="assignCamera('${key}',this.value,'')">
-          ${ROBOT_PARTS.map(p=>`<option value="${p}"${p===sel?' selected':''}>${(PART_ICONS[p]||'')} ${p}</option>`).join('')}
-        </select>
-        <span style="font-size:10px;color:#304050;margin-left:4px">/dev/video${idx}</span>
-      </div>
-    </div>`;
-  }).join('');
+    html+=camBox(key, `/rawcam/${idx}`, `video${idx}`, camLabels);
+  });
+  grid.innerHTML=html;
+
+  // drive view — prefer ZMQ front cam, else first available
+  const firstZmq=(zmqNames||[])[0];
+  if(firstZmq){
+    const lb=camLabels[firstZmq]||{};
+    const lbl=lb.part&&lb.part!=='—'?`${PART_ICONS[lb.part]||''} ${lb.part}`:firstZmq;
+    document.getElementById('drive_cam').innerHTML=`<div class="cam-label">${lbl}</div><img src="/camera/${firstZmq}">`;
+    document.getElementById('ai_cam').innerHTML=`<div class="cam-label">${lbl}</div><img src="/camera/${firstZmq}">`;
+  } else if((rawDevs||[]).length){
+    const idx=rawDevs[0];
+    document.getElementById('drive_cam').innerHTML=`<div class="cam-label">video${idx}</div><img src="/rawcam/${idx}">`;
+  }
 }
+
+// Legacy shims (called from poll)
+function renderCams(names, labels){ renderAllCams(names, null, labels); }
+function renderRawCams(devs){ renderAllCams(null, devs, null); }
 
 // ── Status poll ───────────────────────────────────────────────────────────────
 setInterval(async()=>{
@@ -551,10 +546,8 @@ setInterval(async()=>{
     const wl=document.getElementById('wp_list');
     if(waypoints.length)wl.innerHTML=waypoints.map((w,i)=>`<div class="wp-item${i===wpIdx&&wpActive?' active':''}"><b>${i+1}</b> · x:${w.x.toFixed(2)} y:${w.y.toFixed(2)}</div>`).join('');
     else wl.innerHTML='<div style="color:#3a4a60;font-size:12px;padding:20px;text-align:center">Click on map to add waypoints</div>';
-    // cameras (ZMQ)
-    renderCams(d.cameras||[], d.camera_labels||{});
-    // raw cam server streams
-    renderRawCams(d.rawcam_devs||[]);
+    // all cameras in one grid
+    renderAllCams(d.cameras||[], d.rawcam_devs||[], d.camera_labels||{});
     // inference
     const is=document.getElementById('infer_status');
     is.className='infer-status '+(d.inference_mode?'running':'idle');
