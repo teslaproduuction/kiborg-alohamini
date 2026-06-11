@@ -27,10 +27,22 @@ a.nav:hover{border-color:#4a9eff;color:#4a9eff}
 .card-title{font-size:10px;color:#4a6080;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
 
 /* Cameras */
-.cam-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+.cam-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
 .cam-box{background:#060a10;border:1px solid #1e2535;border-radius:8px;overflow:hidden;position:relative}
 .cam-box img{width:100%;display:block;background:#000;min-height:160px}
-.cam-label{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:#4a9eff;padding:2px 8px;border-radius:4px;font-size:11px}
+.cam-label{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.75);color:#4a9eff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.cam-assign{padding:6px 8px;display:flex;align-items:center;gap:6px;border-top:1px solid #1a2535;background:#080c14}
+.cam-assign label{font-size:11px;color:#4a6080;min-width:38px}
+.cam-assign select{flex:1;background:#0d1117;border:1px solid #2a3a55;color:#80b0e0;border-radius:4px;padding:3px 6px;font-size:12px}
+.cam-assign select:focus{outline:none;border-color:#4a9eff}
+.cam-assign input{flex:1;background:#0d1117;border:1px solid #2a3a55;color:#80b0e0;border-radius:4px;padding:3px 6px;font-size:12px}
+.cam-part-badge{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.part-front{background:#0a2a40;color:#4af}
+.part-rear{background:#2a1a00;color:#fa8}
+.part-top{background:#1a0a30;color:#d8f}
+.part-wrist_left{background:#0a2010;color:#4f8}
+.part-wrist_right{background:#1a2000;color:#cf8}
+.part-custom{background:#1a1a1a;color:#aaa}
 .cam-empty{padding:40px;text-align:center;color:#3a4a60;font-size:13px}
 
 /* Dpad */
@@ -416,18 +428,59 @@ async function refreshRecList(){
 refreshRecList();
 
 // ── Cameras ───────────────────────────────────────────────────────────────────
-function renderCams(names){
+let camLabels={};
+const ROBOT_PARTS=['front','rear','top','wrist_left','wrist_right','custom','—'];
+const PART_ICONS={front:'🔭',rear:'🔄',top:'⬆️',wrist_left:'🦾',wrist_right:'🦿',custom:'📌'};
+
+async function assignCamera(camName, part, note=''){
+  await fetch('/camera_labels',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({camera:camName,part,note})});
+  camLabels[camName]={part,note};
+  updateCamBadge(camName);
+}
+
+function updateCamBadge(camName){
+  const lb=camLabels[camName];
+  const el=document.getElementById('badge_'+camName);
+  if(!el||!lb||!lb.part||lb.part==='—') return;
+  el.className='cam-part-badge part-'+lb.part;
+  el.textContent=(PART_ICONS[lb.part]||'')+(lb.note?' '+lb.note:' '+lb.part);
+}
+
+function renderCams(names, labels){
+  if(labels) camLabels=labels;
   if(JSON.stringify(names)===JSON.stringify(camList))return;
   camList=names;
   const grid=document.getElementById('cam_grid');
-  if(!names.length){grid.innerHTML='<div class="cam-empty">No cameras enabled on robot. Edit config_lekiwi.py to enable.</div>';
+  if(!names.length){grid.innerHTML='<div class="cam-empty">No cameras enabled on robot.<br>Edit config_lekiwi.py to enable.</div>';
     document.getElementById('drive_cam').innerHTML='<div class="cam-empty">No camera feed</div>';
     return;}
-  grid.innerHTML=names.map(n=>`<div class="cam-box"><div class="cam-label">${n}</div><img src="/camera/${n}" alt="${n}"></div>`).join('');
-  // drive view shows first cam
+
+  const partOpts=ROBOT_PARTS.map(p=>`<option value="${p}">${(PART_ICONS[p]||'')} ${p}</option>`).join('');
+  grid.innerHTML=names.map(n=>{
+    const lb=camLabels[n]||{};
+    const sel=lb.part||'—';
+    return `<div class="cam-box">
+      <div class="cam-label"><span id="badge_${n}" class="cam-part-badge ${lb.part?'part-'+lb.part:''}">${lb.part?((PART_ICONS[lb.part]||'')+' '+lb.part):n}</span></div>
+      <img src="/camera/${n}" alt="${n}" loading="lazy">
+      <div class="cam-assign">
+        <label>Part</label>
+        <select onchange="assignCamera('${n}',this.value,document.getElementById('note_${n}').value)">
+          ${ROBOT_PARTS.map(p=>`<option value="${p}"${p===sel?' selected':''}>${(PART_ICONS[p]||'')} ${p}</option>`).join('')}
+        </select>
+        <input id="note_${n}" placeholder="note" value="${lb.note||''}"
+          onchange="assignCamera('${n}',document.getElementById('part_${n}') ? document.getElementById('part_${n}').value : '${sel}',this.value)"
+          style="width:70px">
+      </div>
+    </div>`;
+  }).join('');
+
+  // drive view shows first cam with part label
   const first=names[0];
-  document.getElementById('drive_cam').innerHTML=`<div class="cam-label">${first}</div><img src="/camera/${first}">`;
-  document.getElementById('ai_cam').innerHTML=`<div class="cam-label">${first}</div><img src="/camera/${first}">`;
+  const fl=camLabels[first]||{};
+  const flabel=fl.part?`${PART_ICONS[fl.part]||''} ${fl.part}`:first;
+  document.getElementById('drive_cam').innerHTML=`<div class="cam-label">${flabel}</div><img src="/camera/${first}">`;
+  document.getElementById('ai_cam').innerHTML=`<div class="cam-label">${flabel}</div><img src="/camera/${first}">`;
 }
 
 // ── Status poll ───────────────────────────────────────────────────────────────
@@ -471,7 +524,7 @@ setInterval(async()=>{
     if(waypoints.length)wl.innerHTML=waypoints.map((w,i)=>`<div class="wp-item${i===wpIdx&&wpActive?' active':''}"><b>${i+1}</b> · x:${w.x.toFixed(2)} y:${w.y.toFixed(2)}</div>`).join('');
     else wl.innerHTML='<div style="color:#3a4a60;font-size:12px;padding:20px;text-align:center">Click on map to add waypoints</div>';
     // cameras
-    renderCams(d.cameras||[]);
+    renderCams(d.cameras||[], d.camera_labels||{});
     // inference
     const is=document.getElementById('infer_status');
     is.className='infer-status '+(d.inference_mode?'running':'idle');
