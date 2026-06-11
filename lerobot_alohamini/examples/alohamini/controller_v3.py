@@ -199,17 +199,22 @@ def smooth_move(sides, target: dict, steps=40, duration=1.5):
 # ── Action builder ────────────────────────────────────────────────────────────
 def build_action():
     with lock:
-        lh   = state["lift_height"]
-        bc   = state["base_cmd"]
-        left = dict(state["arm_left"])
-        right= dict(state["arm_right"])
+        lh       = state["lift_height"]
+        bc       = state["base_cmd"]
+        left     = dict(state["arm_left"])
+        right    = dict(state["arm_right"])
+        disarmed = state["arms_disarmed"]
     action = {
         "x.vel": bc["x"], "y.vel": bc["y"], "theta.vel": bc["theta"],
         "lift_axis.height_mm": lh,
     }
-    for j in ARM_JOINTS:
-        action[f"arm_left_{j}.pos"]  = left[j]
-        action[f"arm_right_{j}.pos"] = right[j]
+    if disarmed:
+        # Keep sending disarm key so lekiwi_host keeps torque disabled
+        action["__disarm_arms"] = True
+    else:
+        for j in ARM_JOINTS:
+            action[f"arm_left_{j}.pos"]  = left[j]
+            action[f"arm_right_{j}.pos"] = right[j]
     return action
 
 # ── Odometry update ───────────────────────────────────────────────────────────
@@ -756,16 +761,19 @@ def arm_disarm():
 
 @app.route('/arm/rearm', methods=['POST'])
 def arm_rearm():
-    """Re-enable torque on arm motors and sync positions from current obs."""
+    """Re-enable torque. Syncs arm_left/right from latest obs before enabling."""
     with lock:
+        # arm positions are already synced from obs_loop — just flip flag
         state["arms_disarmed"] = False
+    # Send arm command once to engage torque
+    with lock: lh = state["lift_height"]
     payload = json.dumps({"__arm_arms": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
-                          "lift_axis.height_mm": state["lift_height"]}).encode()
-    for _ in range(5):
-        try: cmd_sock.send(payload, flags=1)
+                          "lift_axis.height_mm": lh}).encode()
+    for _ in range(8):
+        try: cmd_sock.send(payload)
         except: pass
-        time.sleep(0.05)
+        time.sleep(0.03)
     return jsonify(ok=True, disarmed=False)
 
 @app.route('/arm/preset', methods=['POST'])
