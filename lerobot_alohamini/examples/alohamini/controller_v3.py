@@ -55,7 +55,7 @@ state = {
     "arm_gamepad_axes": {},
     "arm_gamepad_buttons": {},
     "arm_control_side": "left",   # "left" | "right" | "both"
-    "arms_disarmed":    False,
+    "robot_disarmed":   False,
     "connected":        False,
     # Cameras: name → base64 jpeg
     "cameras":        {},
@@ -96,9 +96,10 @@ DEFAULT_BINDINGS = {
         "3": {"action":"stop_base",  "label":"RTN"},
         "4": {"action":"speed_down", "label":"PAGE"},
         "5": {"action":"speed_up",   "label":"PWR"},
-        "6": {"action":"joint_prev", "label":"SA"},
+        "6": {"action":"none",       "label":"SA"},
         "7": {"action":"joint_next", "label":"SB"},
     },
+    "sa_arm_btn": 6,
 }
 
 # ── PS4 arm bindings defaults ─────────────────────────────────────────────────
@@ -187,7 +188,7 @@ def smooth_move(sides, target: dict, steps=40, duration=1.5):
         for i in range(1, steps+1):
             t = i / steps
             with lock:
-                if state["arms_disarmed"]: break
+                if state["robot_disarmed"]: break
                 for s in sides:
                     for j, tgt in target.items():
                         cur = starts[s][j]
@@ -203,14 +204,14 @@ def build_action():
         bc       = state["base_cmd"]
         left     = dict(state["arm_left"])
         right    = dict(state["arm_right"])
-        disarmed = state["arms_disarmed"]
+        disarmed = state["robot_disarmed"]
     action = {
         "x.vel": bc["x"], "y.vel": bc["y"], "theta.vel": bc["theta"],
         "lift_axis.height_mm": lh,
     }
     if disarmed:
         # Keep sending disarm key so lekiwi_host keeps torque disabled
-        action["__disarm_arms"] = True
+        action["__disarm_robot"] = True
     else:
         for j in ARM_JOINTS:
             action[f"arm_left_{j}.pos"]  = left[j]
@@ -423,7 +424,7 @@ _SIDE_CYCLE = ["left", "right", "both"]
 
 def gamepad_loop():
     pygame.init(); pygame.joystick.init()
-    last_btns = {}; arm_last_btns = {}; last_count = -1
+    last_btns = {}; arm_last_btns = {}; last_count = -1; last_sa_armed = None
     while True:
         pygame.joystick.quit(); pygame.joystick.init()
         count = pygame.joystick.get_count()
@@ -434,7 +435,7 @@ def gamepad_loop():
 
         # Detect gamepads by name — RadioMaster=base, Sony/DualShock=arms
         # Falls back to index if names don't match
-        _BASE_KEYWORDS = ("radiomaster","opentx","frsky","tx16","tx12","boxer","pocket")
+        _BASE_KEYWORDS = ("radiomaster","opentx","frsky","tx16","tx12","boxer","pocket","expresslrs","elrs")
         _ARM_KEYWORDS  = ("sony","dualshock","dualsense","playstation","wireless controller","ps4","ps5")
         all_names = [pygame.joystick.Joystick(i).get_name().lower() for i in range(count)]
         print(f"[Gamepad] devices: {all_names}")
@@ -500,6 +501,17 @@ def gamepad_loop():
                                 elif act=="speed_down": state["base_speed"]=max(.05,sp-.05)
                                 elif act=="stop_base": state["base_cmd"]={"x":0,"y":0,"theta":0}
                     last_btns=dict(btns)
+                    # SA switch: DOWN(pressed)=ARMED, UP=DISARMED — level-triggered, fires on change
+                    sa_btn = str(bindings.get("sa_arm_btn", 6))
+                    sa_pressed = bool(btns.get(sa_btn, False))
+                    if sa_pressed != last_sa_armed:
+                        last_sa_armed = sa_pressed
+                        if sa_pressed:
+                            print("[SA] → ARMED")
+                            threading.Thread(target=_do_arm, daemon=True).start()
+                        else:
+                            print("[SA] → DISARMED")
+                            threading.Thread(target=_do_disarm, daemon=True).start()
 
                 # ── Arm gamepad (PS4) ─────────────────────────────────────
                 if joy_arm:
@@ -721,7 +733,7 @@ def status():
             arm_gamepad_axes=state["arm_gamepad_axes"],
             arm_gamepad_buttons=state["arm_gamepad_buttons"],
             arm_control_side=state["arm_control_side"],
-            arms_disarmed=state["arms_disarmed"],
+            robot_disarmed=state["robot_disarmed"],
             arm_speed=arm_bindings.get("arm_speed", 2.0),
             odom=dict(state["odom"]),
             cameras=state["camera_names"],
@@ -745,35 +757,38 @@ def arm_side():
     with lock: state["arm_control_side"] = side
     return jsonify(side=side)
 
-@app.route('/arm/disarm', methods=['POST'])
-def arm_disarm():
-    """Disable torque on all arm motors (Pi-side via ZMQ special key)."""
-    with lock: state["arms_disarmed"] = True
-    # Send disarm command a few times to ensure delivery
-    payload = json.dumps({"__disarm_arms": True,
+def _do_disarm():
+    """Disable torque on whole robot (background-safe, called from gamepad or HTTP)."""
+    with lock: state["robot_disarmed"] = True
+    with lock: lh = state["lift_height"]
+    payload = json.dumps({"__disarm_robot": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
-                          "lift_axis.height_mm": state["lift_height"]}).encode()
+                          "lift_axis.height_mm": lh}).encode()
     for _ in range(5):
-        try: cmd_sock.send(payload, flags=1)
+        try: cmd_sock.send(payload, flags=zmq.NOBLOCK)
         except: pass
         time.sleep(0.05)
-    return jsonify(ok=True, disarmed=True)
 
-@app.route('/arm/rearm', methods=['POST'])
-def arm_rearm():
-    """Re-enable torque. Syncs arm_left/right from latest obs before enabling."""
-    with lock:
-        # arm positions are already synced from obs_loop — just flip flag
-        state["arms_disarmed"] = False
-    # Send arm command once to engage torque
+def _do_arm():
+    """Re-enable torque on whole robot (background-safe)."""
+    with lock: state["robot_disarmed"] = False
     with lock: lh = state["lift_height"]
-    payload = json.dumps({"__arm_arms": True,
+    payload = json.dumps({"__arm_robot": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
                           "lift_axis.height_mm": lh}).encode()
     for _ in range(8):
         try: cmd_sock.send(payload)
         except: pass
         time.sleep(0.03)
+
+@app.route('/arm/disarm', methods=['POST'])
+def arm_disarm():
+    threading.Thread(target=_do_disarm, daemon=True).start()
+    return jsonify(ok=True, disarmed=True)
+
+@app.route('/arm/rearm', methods=['POST'])
+def arm_rearm():
+    threading.Thread(target=_do_arm, daemon=True).start()
     return jsonify(ok=True, disarmed=False)
 
 @app.route('/arm/preset', methods=['POST'])
@@ -784,9 +799,9 @@ def arm_preset():
     preset = ARM_PRESETS.get(name)
     if not preset: return jsonify(error=f"unknown preset: {name}"), 400
     with lock:
-        disarmed = state["arms_disarmed"]
+        disarmed = state["robot_disarmed"]
         s = sides_req or state["arm_control_side"]
-    if disarmed: return jsonify(error="arms are disarmed"), 400
+    if disarmed: return jsonify(error="robot is disarmed"), 400
     sides = ["arm_left","arm_right"] if s == "both" else [f"arm_{s}"]
     smooth_move([x.replace("arm_","") for x in sides], preset)
     return jsonify(ok=True, preset=name, sides=sides)
