@@ -21,7 +21,7 @@ WEB_PORT   = int(os.environ.get("WEB_PORT", 8080))
 # Extra camera server running on Pi (robot_cam_server.py) for cameras not in lekiwi_host
 CAM_SERVER_PORT = int(os.environ.get("CAM_SERVER_PORT", 8091))
 # /dev/videoN indices served by cam server (not via ZMQ obs)
-CAM_SERVER_DEVS = [int(x) for x in os.environ.get("CAM_SERVER_DEVS", "0,2,4,6,8").split(",")]
+CAM_SERVER_DEVS = [int(x) for x in os.environ.get("CAM_SERVER_DEVS", "2,4,6,8").split(",")]
 BINDINGS_FILE      = Path(__file__).parent / "gamepad_bindings.json"
 ARM_BINDINGS_FILE  = Path(__file__).parent / "arm_bindings.json"
 CAM_LABELS_FILE    = Path(__file__).parent / "camera_labels.json"
