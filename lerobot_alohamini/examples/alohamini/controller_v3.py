@@ -582,23 +582,19 @@ app = Flask(__name__)
 
 @app.route('/rawcam/<int:idx>')
 def rawcam_stream(idx):
-    """Proxy MJPEG stream from robot_cam_server.py on Pi."""
+    """Proxy MJPEG stream from robot_cam_server.py on Pi — simple passthrough."""
     import urllib.request
     url = f"http://{REMOTE_IP}:{CAM_SERVER_PORT}/cam/{idx}"
     def gen():
-        try:
-            req = urllib.request.urlopen(url, timeout=5)
-            buf = b""
-            while True:
-                chunk = req.read(4096)
-                if not chunk: break
-                buf += chunk
-                start = buf.find(b"--frame")
-                if start >= 0:
-                    yield buf[start:]
-                    buf = b""
-        except Exception:
-            time.sleep(1)
+        while True:
+            try:
+                req = urllib.request.urlopen(url, timeout=10)
+                while True:
+                    chunk = req.read(8192)
+                    if not chunk: break
+                    yield chunk
+            except Exception:
+                time.sleep(2)
     return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 @app.route('/rawcam_snap/<int:idx>')
