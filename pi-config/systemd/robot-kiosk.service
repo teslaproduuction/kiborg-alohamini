@@ -1,0 +1,21 @@
+[Unit]
+Description=AlohaMini Kiosk Display (Wayland)
+After=robot-display.service
+Wants=robot-display.service
+
+[Service]
+User=pi
+Group=pi
+PAMName=login
+TTYPath=/dev/tty7
+StandardInput=tty
+StandardOutput=tty
+Environment=WLR_BACKENDS=drm
+Environment=WLR_DRM_DEVICES=/dev/dri/card1
+ExecStartPre=/bin/sleep 5
+ExecStart=/usr/bin/cage -- /usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --touch-events=enabled http://localhost:8090
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
