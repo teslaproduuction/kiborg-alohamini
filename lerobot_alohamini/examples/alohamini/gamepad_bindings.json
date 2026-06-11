@@ -10,7 +10,7 @@
     "1": {
       "action": "x_vel",
       "deadzone": 0.1,
-      "invert": true,
+      "invert": false,
       "label": "Left Y",
       "scale": 1
     },
