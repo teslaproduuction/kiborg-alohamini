@@ -83,7 +83,7 @@ initialized = threading.Event()
 DEFAULT_BINDINGS = {
     "axes": {
         "0": {"action":"y_vel",    "scale":1.0,"deadzone":0.10,"invert":False,"label":"Left Gimbal X"},
-        "1": {"action":"x_vel",    "scale":1.0,"deadzone":0.10,"invert":True, "label":"Left Gimbal Y"},
+        "1": {"action":"x_vel",    "scale":1.0,"deadzone":0.10,"invert":False,"label":"Left Gimbal Y"},
         "2": {"action":"theta_vel","scale":1.0,"deadzone":0.10,"invert":False,"label":"Right Gimbal X"},
         "3": {"action":"lift",     "scale":1.0,"deadzone":0.10,"invert":False,"label":"Right Gimbal Y"},
         "4": {"action":"arm_left", "scale":1.0,"deadzone":0.05,"invert":False,"label":"Left Wheel"},
