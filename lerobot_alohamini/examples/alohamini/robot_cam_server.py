@@ -22,7 +22,7 @@ FFMPEG     = os.environ.get("FFMPEG", "/home/pi/miniforge3/envs/lerobot/bin/ffmp
 CAMS_ENV   = os.environ.get("CAMS", "2,4,6,8")
 CAM_DEVS   = [f"/dev/video{n.strip()}" for n in CAMS_ENV.split(",")]
 FPS        = int(os.environ.get("CAM_FPS", "5"))
-W, H       = 640, 480
+W, H       = 320, 240  # low res for USB 1.1 hub cameras; set to 640,480 after USB 3.0
 
 app = Flask(__name__)
 _frames: dict[str, bytes] = {}
