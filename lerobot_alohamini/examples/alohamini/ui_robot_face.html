@@ -2,507 +2,502 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>AlohaMini</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden;background:#050810;font-family:'Segoe UI',sans-serif;touch-action:manipulation}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Segoe UI',sans-serif}
+canvas#bg{position:fixed;inset:0;z-index:0}
 
-/* ── Background ── */
-#bg{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 60%, #0a1428 0%, #050810 70%)}
-.particle{position:absolute;border-radius:50%;pointer-events:none;animation:float linear infinite}
-@keyframes float{0%{transform:translateY(0) scale(1);opacity:.6}50%{opacity:.2}100%{transform:translateY(-100vh) scale(.3);opacity:0}}
+#ui{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:0;pointer-events:none}
 
-/* ── Face container ── */
-#face{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:0}
+/* Status bar */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent)}
+.chip{display:flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.5px;color:#4080c0}
+.chip b{color:#80c0ff;font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;background:#1a3060;transition:background .5s,box-shadow .5s}
+.dot.ok{background:#00ff88;box-shadow:0 0 8px #00ff88}
 
-/* ── Eyes ── */
-#eyes-wrap{display:flex;gap:60px;align-items:center;justify-content:center;margin-top:-20px}
-.eye-outer{position:relative;width:160px;height:160px}
-.eye-bg{fill:#020408;stroke:#1a3a6a;stroke-width:3}
-.eye-glow{fill:none;stroke:#2060c0;stroke-width:2;opacity:.5;animation:pulse 3s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.3;stroke-width:2}50%{opacity:.8;stroke-width:4}}
-.iris{transition:transform .15s ease-out}
-.pupil{transition:transform .15s ease-out}
-.eyelid-top{fill:#050810;transform-origin:50% 0%;transition:transform .1s ease-out}
-.eyelid-bot{fill:#050810;transform-origin:50% 100%;transition:transform .1s ease-out}
-.eye-shine{opacity:.7;animation:shine 4s ease-in-out infinite}
-@keyframes shine{0%,100%{opacity:.7}50%{opacity:.3}}
-.eye-scan{fill:none;stroke-width:1.5;animation:scan 2.5s linear infinite;opacity:0;transition:opacity .5s}
-@keyframes scan{0%{stroke-dashoffset:500}100%{stroke-dashoffset:0}}
+/* Eyes */
+#eyes{display:flex;gap:50px;align-items:center;justify-content:center;margin-top:-10px;pointer-events:none}
+canvas.eye{border-radius:50%;display:block}
 
-/* ── Mouth ── */
-#mouth-wrap{margin-top:14px;height:50px;display:flex;align-items:center;justify-content:center}
-#mouth-svg{transition:d .4s ease}
+/* Brow SVG */
+#brows{position:absolute;pointer-events:none;top:0;left:0;width:100%;height:100%}
 
-/* ── Status row ── */
-#status-row{position:absolute;top:14px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:20}
-.stat-chip{background:rgba(10,20,40,.7);border:1px solid #1a3060;border-radius:20px;padding:5px 14px;font-size:12px;color:#6090d0;display:flex;align-items:center;gap:6px}
-.stat-chip span{color:#90c0ff;font-weight:600}
-.dot-conn{width:8px;height:8px;border-radius:50%;background:#1a3060;transition:background .5s}
-.dot-conn.ok{background:#3fb950;box-shadow:0 0 6px #3fb950}
+/* Mood label */
+#mood{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#204060;margin-top:6px;text-shadow:0 0 10px #2060a0;transition:color .5s;pointer-events:none}
 
-/* ── Mood label ── */
-#mood-label{position:absolute;top:50%;transform:translateY(calc(-50% - 110px));font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#2a4a80;pointer-events:none;transition:color .5s,opacity .5s;opacity:.8}
+/* Mouth */
+#mouth{margin-top:8px;pointer-events:none}
 
-/* ── E-STOP ── */
-#estop-wrap{position:absolute;bottom:20px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:20px;z-index:30}
-#estop-btn{
-  width:140px;height:140px;border-radius:50%;
-  background:radial-gradient(circle at 40% 35%, #ff4040, #8b0000);
-  border:4px solid #ff2020;
-  color:#fff;font-size:16px;font-weight:900;letter-spacing:1px;
-  cursor:pointer;
-  box-shadow:0 0 30px #ff000060, 0 0 60px #ff000030, inset 0 -6px 15px rgba(0,0,0,.4);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  transition:transform .1s,box-shadow .1s;
-  user-select:none;-webkit-user-select:none;
-  position:relative;overflow:hidden;
-}
-#estop-btn::before{
-  content:'';position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(transparent 0deg, rgba(255,255,255,.08) 60deg, transparent 120deg);
-  animation:spin 4s linear infinite;
-}
+/* Status bottom strip */
+#bottombar{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;align-items:flex-end;justify-content:space-between;padding:12px 20px;background:linear-gradient(to top,rgba(0,0,0,.8),transparent)}
+.side-stat{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#203050}
+.side-stat b{color:#4080a0;font-size:13px;font-weight:700;letter-spacing:1px}
+
+/* E-STOP */
+#estop{pointer-events:all;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#ff5050 0%,#8b0000 65%,#400000 100%);border:3px solid #ff2020;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 25px #ff000080,0 0 50px #ff000030,inset 0 -4px 12px #00000060;transition:transform .08s,box-shadow .08s;user-select:none;position:relative;overflow:hidden}
+#estop::after{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(transparent 0deg,rgba(255,255,255,.06) 60deg,transparent 120deg);animation:spin 5s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-#estop-btn:active{transform:scale(.92);box-shadow:0 0 10px #ff000060}
-#estop-btn.active-stop{
-  background:radial-gradient(circle at 40% 35%, #ff8080, #cc0000);
-  animation:estop-pulse 0.4s ease-in-out infinite alternate;
-}
-@keyframes estop-pulse{from{box-shadow:0 0 30px #ff0000a0}to{box-shadow:0 0 60px #ff0000ff,0 0 100px #ff000060}}
-#estop-text{font-size:13px;font-weight:900;letter-spacing:2px;line-height:1.2;text-align:center}
-#estop-icon{font-size:28px;margin-bottom:4px}
+#estop:active{transform:scale(.9)}
+#estop.fired{animation:estop-pulse .35s ease-in-out infinite alternate;border-color:#ff6060}
+@keyframes estop-pulse{from{box-shadow:0 0 25px #ff000090}to{box-shadow:0 0 60px #ff0000ff,0 0 100px #ff000050}}
+#estop .ico{font-size:26px;pointer-events:none}
+#estop .lbl{font-size:12px;font-weight:900;letter-spacing:2px;color:#fff;pointer-events:none;margin-top:2px}
 
-.side-info{display:flex;flex-direction:column;gap:8px;color:#2a4a80;font-size:11px}
-.side-info .val{color:#5080c0;font-weight:600}
-
-/* ── Overlay text ── */
-#overlay-msg{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  font-size:28px;font-weight:900;letter-spacing:6px;color:#fff;
-  text-shadow:0 0 20px currentColor;
-  opacity:0;transition:opacity .4s;pointer-events:none;
-  text-transform:uppercase;
-}
-
-/* ── Mood themes ── */
-body.mood-idle    {--eye-color:#4080ff;--iris-color:#2050c0;--glow:#1a3a8a}
-body.mood-active  {--eye-color:#40d0ff;--iris-color:#2090c0;--glow:#106080}
-body.mood-recording{--eye-color:#ff4060;--iris-color:#c01030;--glow:#600010}
-body.mood-ai      {--eye-color:#a040ff;--iris-color:#7020c0;--glow:#300060}
-body.mood-estop   {--eye-color:#ff8080;--iris-color:#ff2020;--glow:#600000}
-body.mood-sleep   {--eye-color:#203050;--iris-color:#102030;--glow:#102030}
+/* Overlay */
+#overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900;letter-spacing:8px;color:#ff4040;text-shadow:0 0 30px currentColor;opacity:0;pointer-events:none;transition:opacity .3s}
 </style>
 </head>
-<body class="mood-idle">
+<body>
 
-<div id="bg"></div>
-<div id="face">
-  <!-- Status top bar -->
-  <div id="status-row">
-    <div class="stat-chip">
-      <div class="dot-conn" id="conn-dot"></div>
-      <span id="stat-ip">—</span>
-    </div>
-    <div class="stat-chip">🌡 <span id="stat-temp">—</span>°C</div>
-    <div class="stat-chip">⏱ <span id="stat-up">—</span></div>
-    <div class="stat-chip" id="stat-time">00:00</div>
-  </div>
+<canvas id="bg"></canvas>
 
-  <!-- Mood label -->
-  <div id="mood-label">STANDBY</div>
-
-  <!-- Eyes -->
-  <div id="eyes-wrap">
-    <!-- LEFT EYE -->
-    <div class="eye-outer" id="eye-L">
-      <svg viewBox="0 0 160 160" width="160" height="160">
-        <defs>
-          <radialGradient id="irisGradL" cx="40%" cy="35%" r="60%">
-            <stop offset="0%" stop-color="#6090ff"/>
-            <stop offset="100%" stop-color="#102080"/>
-          </radialGradient>
-          <radialGradient id="pupilGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#000"/>
-            <stop offset="100%" stop-color="#050820"/>
-          </radialGradient>
-          <filter id="glow-eye">
-            <feGaussianBlur stdDeviation="4" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          <clipPath id="clipL"><ellipse cx="80" cy="80" rx="68" ry="68"/></clipPath>
-        </defs>
-        <!-- outer ring glow -->
-        <ellipse cx="80" cy="80" rx="75" ry="75" fill="none" stroke="#1a3a6a" stroke-width="2" opacity=".4"/>
-        <!-- eye white/bg -->
-        <ellipse class="eye-bg" cx="80" cy="80" rx="68" ry="68" filter="url(#glow-eye)"/>
-        <!-- scan ring (AI mode) -->
-        <ellipse class="eye-scan" id="scan-L" cx="80" cy="80" rx="55" ry="55" stroke="#a040ff"
-          stroke-dasharray="50 300" stroke-dashoffset="0"/>
-        <!-- iris -->
-        <g class="iris" id="iris-L" clip-path="url(#clipL)">
-          <ellipse cx="80" cy="80" rx="45" ry="45" fill="url(#irisGradL)"/>
-          <!-- iris detail rings -->
-          <ellipse cx="80" cy="80" rx="45" ry="45" fill="none" stroke="#3060c0" stroke-width="1" opacity=".5"/>
-          <ellipse cx="80" cy="80" rx="35" ry="35" fill="none" stroke="#4070d0" stroke-width=".5" opacity=".4"/>
-          <!-- pupil -->
-          <ellipse class="pupil" id="pupil-L" cx="80" cy="80" rx="22" ry="22" fill="url(#pupilGrad)"/>
-          <!-- shine -->
-          <ellipse class="eye-shine" cx="68" cy="68" rx="8" ry="5" fill="rgba(255,255,255,.6)" transform="rotate(-20,68,68)"/>
-          <ellipse class="eye-shine" cx="88" cy="74" rx="4" ry="3" fill="rgba(255,255,255,.3)"/>
-        </g>
-        <!-- eyelid top -->
-        <rect class="eyelid-top" id="lid-top-L" x="8" y="8" width="144" height="80" rx="4"/>
-        <!-- eyelid bottom -->
-        <rect class="eyelid-bot" id="lid-bot-L" x="8" y="80" width="144" height="80" rx="4"/>
-        <!-- outer glow ring -->
-        <ellipse class="eye-glow" cx="80" cy="80" rx="70" ry="70"/>
-      </svg>
-    </div>
-
-    <!-- RIGHT EYE -->
-    <div class="eye-outer" id="eye-R">
-      <svg viewBox="0 0 160 160" width="160" height="160">
-        <defs>
-          <radialGradient id="irisGradR" cx="40%" cy="35%" r="60%">
-            <stop offset="0%" stop-color="#6090ff"/>
-            <stop offset="100%" stop-color="#102080"/>
-          </radialGradient>
-          <clipPath id="clipR"><ellipse cx="80" cy="80" rx="68" ry="68"/></clipPath>
-        </defs>
-        <ellipse cx="80" cy="80" rx="75" ry="75" fill="none" stroke="#1a3a6a" stroke-width="2" opacity=".4"/>
-        <ellipse class="eye-bg" cx="80" cy="80" rx="68" ry="68" filter="url(#glow-eye)"/>
-        <ellipse class="eye-scan" id="scan-R" cx="80" cy="80" rx="55" ry="55" stroke="#a040ff"
-          stroke-dasharray="50 300" stroke-dashoffset="0"/>
-        <g class="iris" id="iris-R" clip-path="url(#clipR)">
-          <ellipse cx="80" cy="80" rx="45" ry="45" fill="url(#irisGradR)"/>
-          <ellipse cx="80" cy="80" rx="45" ry="45" fill="none" stroke="#3060c0" stroke-width="1" opacity=".5"/>
-          <ellipse cx="80" cy="80" rx="35" ry="35" fill="none" stroke="#4070d0" stroke-width=".5" opacity=".4"/>
-          <ellipse class="pupil" id="pupil-R" cx="80" cy="80" rx="22" ry="22" fill="url(#pupilGrad)"/>
-          <ellipse class="eye-shine" cx="68" cy="68" rx="8" ry="5" fill="rgba(255,255,255,.6)" transform="rotate(-20,68,68)"/>
-          <ellipse class="eye-shine" cx="88" cy="74" rx="4" ry="3" fill="rgba(255,255,255,.3)"/>
-        </g>
-        <rect class="eyelid-top" id="lid-top-R" x="8" y="8" width="144" height="80" rx="4"/>
-        <rect class="eyelid-bot" id="lid-bot-R" x="8" y="80" width="144" height="80" rx="4"/>
-        <ellipse class="eye-glow" cx="80" cy="80" rx="70" ry="70"/>
-      </svg>
-    </div>
-  </div>
-
-  <!-- Mouth -->
-  <div id="mouth-wrap">
-    <svg id="mouth-svg" viewBox="0 0 200 60" width="200" height="60">
-      <path id="mouth-path" d="M 30 20 Q 100 50 170 20" fill="none" stroke="#2a4a80" stroke-width="4" stroke-linecap="round"/>
-    </svg>
-  </div>
-
-  <!-- E-STOP + side info -->
-  <div id="estop-wrap">
-    <div class="side-info" style="text-align:right">
-      <div>CPU <span class="val" id="load-val">—</span></div>
-      <div>ZMQ <span class="val" id="zmq-val">—</span></div>
-    </div>
-
-    <button id="estop-btn" ontouchstart="handleEstop(event)" onclick="handleEstop(event)">
-      <div id="estop-icon">⛔</div>
-      <div id="estop-text">E-STOP</div>
-    </button>
-
-    <div class="side-info">
-      <div id="time-big" style="font-size:22px;font-weight:700;color:#4070c0;letter-spacing:2px">00:00</div>
-      <div style="font-size:10px;letter-spacing:1px" id="date-val">—</div>
-    </div>
-  </div>
-
-  <div id="overlay-msg"></div>
+<div id="topbar">
+  <div class="chip"><div class="dot" id="ndot"></div><b id="nip">—</b></div>
+  <div class="chip">🌡 <b id="temp">—</b>°C</div>
+  <div class="chip">⏱ <b id="upt">—</b></div>
+  <div class="chip"><b id="clk">--:--</b></div>
 </div>
 
-<script>
-// ── State ─────────────────────────────────────────────────────────────────────
-let mood = 'idle';
-let lookX = 0, lookY = 0;  // -1..1
-let blinking = false;
-let estopActive = false;
-let lastStatus = {};
+<div id="ui">
+  <div id="mood">STANDBY</div>
+  <div id="eyes">
+    <canvas class="eye" id="eL" width="190" height="190"></canvas>
+    <canvas class="eye" id="eR" width="190" height="190"></canvas>
+  </div>
+  <div id="mouth">
+    <svg viewBox="0 0 220 60" width="220" height="60">
+      <path id="mpath" d="M 35 30 Q 110 50 185 30" fill="none" stroke="#1a4060" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  </div>
+</div>
 
-// ── Iris colors per mood ──────────────────────────────────────────────────────
-const MOOD_IRIS = {
-  idle:      {outer:'#4878e8', inner:'#1a3898', glow:'#2050c0'},
-  active:    {outer:'#30d8ff', inner:'#0880b0', glow:'#10a0d0'},
-  recording: {outer:'#ff3060', inner:'#900020', glow:'#cc0030'},
-  ai:        {outer:'#b040ff', inner:'#600090', glow:'#8020c0'},
-  estop:     {outer:'#ff6060', inner:'#cc0000', glow:'#ff2020'},
-  sleep:     {outer:'#203050', inner:'#101828', glow:'#102030'},
+<div id="bottombar">
+  <div class="side-stat">
+    <span>CPU <b id="load">—</b></span>
+    <span>ZMQ <b id="zmq">—</b></span>
+  </div>
+  <div id="estop" ontouchstart="doEstop(event)" onclick="doEstop(event)">
+    <div class="ico">⛔</div>
+    <div class="lbl">E-STOP</div>
+  </div>
+  <div class="side-stat" style="text-align:right">
+    <span><b id="tbig">--:--</b></span>
+    <span><b id="date" style="font-size:11px;color:#304060">—</b></span>
+  </div>
+</div>
+
+<div id="overlay"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+//  CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+const W = 190, H = 190, CX = W/2, CY = H/2, R = 88;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────────────────────────────
+const S = {
+  // eye look target (-1..1)
+  tx:0, ty:0,
+  // current look (lerped)
+  lx:0, ly:0,
+  // lid: 0=open, 1=closed
+  lid:0,  // target
+  lidL:0, lidR:0,  // current per eye
+  // pupil scale 0.5..1.5
+  pupilTarget:1, pupilL:1, pupilR:1,
+  // brow raise: -1..1
+  browL:0, browR:0, browLT:0, browRT:0,
+  // mood: idle | active | recording | ai | estop | sleep
+  mood:'idle',
+  // hue base, slowly shifts
+  hue:210,
+  hueSpeed:0.04,
+  // iris rotation
+  irisRot:0,
+  irisRotSpeed:0.3,
+  // scan line
+  scan:0,
+  // glitch
+  glitch:false,
+  estop:false,
+};
+
+// mood palettes [hue, sat%, light%]
+const MOOD_HUE = {
+  idle:210, active:185, recording:355, ai:285, estop:0, sleep:220,
 };
 const MOOD_LABEL = {
-  idle:'STANDBY', active:'MOVING', recording:'RECORDING', ai:'AI MODE',
-  estop:'EMERGENCY STOP', sleep:'SLEEPING',
+  idle:'STANDBY', active:'MOVING', recording:'REC ●', ai:'AI MODE', estop:'EMERGENCY STOP', sleep:'...',
 };
-const MOUTH_CURVE = {
-  idle:'M 30 30 Q 100 50 170 30',
-  active:'M 30 20 Q 100 52 170 20',
-  recording:'M 30 15 Q 100 55 170 15',
-  ai:'M 40 25 Q 100 45 160 25',
-  estop:'M 30 45 Q 100 20 170 45',
-  sleep:'M 50 32 Q 100 36 150 32',
+const MOUTH_D = {
+  idle:'M 35 30 Q 110 52 185 30',
+  active:'M 35 22 Q 110 54 185 22',
+  recording:'M 35 18 Q 110 56 185 18',
+  ai:'M 45 26 Q 110 46 175 26',
+  estop:'M 35 48 Q 110 18 185 48',
+  sleep:'M 55 32 Q 110 36 165 32',
 };
 
-function setMood(m) {
-  mood = m;
-  document.body.className = 'mood-' + m;
-  document.getElementById('mood-label').textContent = MOOD_LABEL[m] || m.toUpperCase();
-  // iris color update
-  const c = MOOD_IRIS[m] || MOOD_IRIS.idle;
-  ['L','R'].forEach(s => {
-    const grad = document.getElementById('irisGrad'+s);
-    if (!grad) return;
-    grad.children[0].setAttribute('stop-color', c.outer);
-    grad.children[1].setAttribute('stop-color', c.inner);
+// ─────────────────────────────────────────────────────────────────────────────
+//  BACKGROUND CANVAS
+// ─────────────────────────────────────────────────────────────────────────────
+const bgC = document.getElementById('bg');
+const bgX = bgC.getContext('2d');
+let BW, BH;
+function resizeBg(){ BW=bgC.width=window.innerWidth; BH=bgC.height=window.innerHeight; }
+window.addEventListener('resize', resizeBg); resizeBg();
+
+const PARTICLES = Array.from({length:40},()=>({
+  x:Math.random(), y:Math.random()+1,
+  vx:(Math.random()-.5)*.0003, vy:-(Math.random()*.0008+.0003),
+  r:Math.random()*2+.5, a:Math.random()*.5+.1, hue:Math.random()*60+190,
+}));
+
+function drawBg(t){
+  bgX.clearRect(0,0,BW,BH);
+  // deep space gradient
+  const g=bgX.createRadialGradient(BW*.5,BH*.55,0,BW*.5,BH*.55,BH*.8);
+  const h = S.hue;
+  g.addColorStop(0,`hsla(${h},60%,8%,1)`);
+  g.addColorStop(.5,`hsla(${h+20},40%,4%,1)`);
+  g.addColorStop(1,'#000');
+  bgX.fillStyle=g; bgX.fillRect(0,0,BW,BH);
+
+  // scan lines
+  bgX.fillStyle='rgba(0,0,0,.06)';
+  for(let y=0;y<BH;y+=3) bgX.fillRect(0,y,BW,1);
+
+  // particles
+  PARTICLES.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.y<-.02){p.y=1.05;p.x=Math.random();}
+    if(p.x<0||p.x>1){p.vx*=-1;}
+    bgX.beginPath();
+    bgX.arc(p.x*BW,p.y*BH,p.r,0,Math.PI*2);
+    bgX.fillStyle=`hsla(${p.hue},80%,70%,${p.a})`;
+    bgX.fill();
   });
-  document.querySelectorAll('.eye-glow').forEach(el => el.style.stroke = c.glow);
-  document.querySelectorAll('.eye-scan').forEach(el => {
-    el.style.opacity = m==='ai' ? '0.7' : '0';
-    el.setAttribute('stroke', c.outer);
-  });
-  // mouth
-  const mp = document.getElementById('mouth-path');
-  if (mp) {
-    mp.setAttribute('d', MOUTH_CURVE[m] || MOUTH_CURVE.idle);
-    mp.style.stroke = c.glow;
-  }
-  // overlay
-  if (m === 'estop') showOverlay('E-STOP', '#ff4040', 2000);
-  if (m === 'recording') showOverlay('● REC', '#ff3060', 800);
+
+  // grid lines (subtle)
+  bgX.strokeStyle=`hsla(${h},50%,30%,.04)`;
+  bgX.lineWidth=1;
+  for(let x=0;x<BW;x+=60){bgX.beginPath();bgX.moveTo(x,0);bgX.lineTo(x,BH);bgX.stroke();}
+  for(let y=0;y<BH;y+=60){bgX.beginPath();bgX.moveTo(0,y);bgX.lineTo(BW,y);bgX.stroke();}
 }
 
-// ── Pupil / iris movement ──────────────────────────────────────────────────────
-function movePupils(x, y) {
-  // x,y in -1..1, max offset 18px
-  const MAX = 18;
-  ['L','R'].forEach(s => {
-    const iris = document.getElementById('iris-'+s);
-    const pupil = document.getElementById('pupil-'+s);
-    if (!iris) return;
-    iris.setAttribute('transform',  `translate(${x*MAX*0.6},${y*MAX*0.6})`);
-    pupil.setAttribute('transform', `translate(${x*MAX},${y*MAX})`);
-  });
-}
+// ─────────────────────────────────────────────────────────────────────────────
+//  EYE DRAWING
+// ─────────────────────────────────────────────────────────────────────────────
+const eL = document.getElementById('eL').getContext('2d');
+const eR = document.getElementById('eR').getContext('2d');
 
-// ── Blink ─────────────────────────────────────────────────────────────────────
-function blink(both=true) {
-  if (blinking || mood==='estop') return;
-  blinking = true;
-  const sides = both ? ['L','R'] : [Math.random()<.5?'L':'R'];
-  sides.forEach(s => {
-    const tt = document.getElementById('lid-top-'+s);
-    const tb = document.getElementById('lid-bot-'+s);
-    if (!tt) return;
-    tt.style.transform = 'scaleY(1.6)';
-    tb.style.transform = 'scaleY(1.6)';
-    setTimeout(() => { tt.style.transform=''; tb.style.transform=''; }, 120);
-  });
-  setTimeout(() => { blinking = false; }, 300);
-}
+function drawEye(ctx, lx, ly, lid, pupilS, hue, t, side, irisRot){
+  ctx.clearRect(0,0,W,H);
+  const cx=CX, cy=CY;
 
-function slowBlink() {
-  if (blinking || mood==='estop') return;
-  blinking = true;
-  ['L','R'].forEach(s => {
-    const tt = document.getElementById('lid-top-'+s);
-    const tb = document.getElementById('lid-bot-'+s);
-    if (!tt) return;
-    tt.style.transition = 'transform 0.18s ease-in';
-    tb.style.transition = 'transform 0.18s ease-in';
-    tt.style.transform = 'scaleY(1.6)'; tb.style.transform = 'scaleY(1.6)';
-    setTimeout(() => {
-      tt.style.transition = 'transform 0.22s ease-out';
-      tb.style.transition = 'transform 0.22s ease-out';
-      tt.style.transform=''; tb.style.transform='';
-    }, 180);
-  });
-  setTimeout(() => { blinking = false; }, 500);
-}
+  // glow backdrop
+  ctx.save();
+  ctx.shadowBlur=30; ctx.shadowColor=`hsla(${hue},100%,60%,.6)`;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.fillStyle=`hsla(${hue},40%,5%,1)`; ctx.fill();
+  ctx.restore();
 
-function squint(level=0.6) {
-  ['L','R'].forEach(s => {
-    const tt = document.getElementById('lid-top-'+s);
-    const tb = document.getElementById('lid-bot-'+s);
-    if (!tt) return;
-    tt.style.transform = `scaleY(${level})`;
-    tb.style.transform = `scaleY(${level})`;
-  });
-}
-function unsquint() {
-  ['L','R'].forEach(s => {
-    document.getElementById('lid-top-'+s)?.style && (document.getElementById('lid-top-'+s).style.transform = '');
-    document.getElementById('lid-bot-'+s)?.style && (document.getElementById('lid-bot-'+s).style.transform = '');
-  });
-}
+  // outer ring
+  ctx.save();
+  ctx.shadowBlur=20; ctx.shadowColor=`hsla(${hue},100%,60%,.8)`;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.strokeStyle=`hsla(${hue},90%,55%,.9)`; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.restore();
 
-// ── Sleep / wake ──────────────────────────────────────────────────────────────
-function closeEyes() {
-  ['L','R'].forEach(s => {
-    const tt = document.getElementById('lid-top-'+s);
-    const tb = document.getElementById('lid-bot-'+s);
-    if (!tt) return;
-    tt.style.transition = 'transform 0.6s ease-in';
-    tb.style.transition = 'transform 0.6s ease-in';
-    tt.style.transform = 'scaleY(1.6)'; tb.style.transform = 'scaleY(1.6)';
-  });
-}
-function openEyes() {
-  ['L','R'].forEach(s => {
-    const tt = document.getElementById('lid-top-'+s);
-    const tb = document.getElementById('lid-bot-'+s);
-    if (!tt) return;
-    tt.style.transition = 'transform 0.4s ease-out';
-    tb.style.transition = 'transform 0.4s ease-out';
-    tt.style.transform = ''; tb.style.transform = '';
-  });
-}
+  // clip to circle
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,R-1,0,Math.PI*2); ctx.clip();
 
-// ── Overlay message ───────────────────────────────────────────────────────────
-function showOverlay(msg, color='#fff', duration=1000) {
-  const el = document.getElementById('overlay-msg');
-  el.textContent = msg; el.style.color = color; el.style.opacity = '1';
-  setTimeout(() => { el.style.opacity = '0'; }, duration);
-}
+  const ox = lx*22, oy = ly*22;
 
-// ── Random behavior ───────────────────────────────────────────────────────────
-let _blinkTimer, _lookTimer, _idleTimer;
+  // iris base
+  const ig=ctx.createRadialGradient(cx+ox*.7,cy+oy*.7,0,cx+ox,cy+oy,55);
+  ig.addColorStop(0,`hsla(${hue+20},100%,55%,.9)`);
+  ig.addColorStop(.4,`hsla(${hue},80%,35%,.95)`);
+  ig.addColorStop(1,`hsla(${hue-20},60%,15%,1)`);
+  ctx.beginPath(); ctx.arc(cx+ox,cy+oy,55,0,Math.PI*2);
+  ctx.fillStyle=ig; ctx.fill();
 
-function schedBlink() {
-  clearTimeout(_blinkTimer);
-  const delay = mood==='sleep' ? 8000+Math.random()*12000 : 2500+Math.random()*5000;
-  _blinkTimer = setTimeout(() => {
-    if (mood!=='estop') slowBlink();
-    schedBlink();
-  }, delay);
-}
-
-function schedLook() {
-  clearTimeout(_lookTimer);
-  const delay = 1500 + Math.random()*4000;
-  _lookTimer = setTimeout(() => {
-    if (mood==='idle' || mood==='active') {
-      lookX = (Math.random()-0.5)*1.4;
-      lookY = (Math.random()-0.5)*0.8;
-      movePupils(lookX, lookY);
-    } else if (mood==='sleep') {
-      movePupils(0, 0.3);
-    }
-    schedLook();
-  }, delay);
-}
-
-// Occasional squint / raised brow expressions
-function schedIdle() {
-  clearTimeout(_idleTimer);
-  _idleTimer = setTimeout(() => {
-    if (mood === 'idle') {
-      const r = Math.random();
-      if (r < 0.15) {
-        // curious: look up
-        lookX=0; lookY=-0.7; movePupils(0,-0.7);
-        setTimeout(()=>{ lookX=0; lookY=0; movePupils(0,0); }, 1200);
-      } else if (r < 0.25) {
-        // suspicious squint
-        squint(0.7); setTimeout(unsquint, 800);
-      } else if (r < 0.35) {
-        // double blink
-        slowBlink(); setTimeout(slowBlink, 400);
+  // hex iris pattern (rotating)
+  ctx.save();
+  ctx.translate(cx+ox,cy+oy);
+  ctx.rotate(irisRot*(side==='R'?-1:1));
+  ctx.strokeStyle=`hsla(${hue+30},80%,65%,.25)`;
+  ctx.lineWidth=.8;
+  const HS=14;
+  for(let row=-5;row<=5;row++){
+    for(let col=-5;col<=5;col++){
+      const hx=col*HS*1.73+(row%2)*HS*.87, hy=row*HS*1.5;
+      if(Math.sqrt(hx*hx+hy*hy)>52) continue;
+      ctx.beginPath();
+      for(let i=0;i<6;i++){
+        const a=i*Math.PI/3-Math.PI/6;
+        i===0?ctx.moveTo(hx+HS*Math.cos(a),hy+HS*Math.sin(a)):ctx.lineTo(hx+HS*Math.cos(a),hy+HS*Math.sin(a));
       }
+      ctx.closePath(); ctx.stroke();
     }
-    schedIdle();
-  }, 4000 + Math.random()*8000);
+  }
+  ctx.restore();
+
+  // iris rings
+  ctx.save();
+  ctx.shadowBlur=6; ctx.shadowColor=`hsla(${hue},100%,70%,.5)`;
+  [42,30].forEach(r=>{
+    ctx.beginPath(); ctx.arc(cx+ox,cy+oy,r,0,Math.PI*2);
+    ctx.strokeStyle=`hsla(${hue+10},90%,60%,.35)`; ctx.lineWidth=1; ctx.stroke();
+  });
+  ctx.restore();
+
+  // scan line sweep across iris
+  const scanY = cy+oy-55 + ((S.scan+t*.0008)%1)*110;
+  const sg=ctx.createLinearGradient(0,scanY-4,0,scanY+4);
+  sg.addColorStop(0,'transparent');
+  sg.addColorStop(.5,`hsla(${hue},100%,80%,.5)`);
+  sg.addColorStop(1,'transparent');
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx+ox,cy+oy,55,0,Math.PI*2); ctx.clip();
+  ctx.fillStyle=sg; ctx.fillRect(cx+ox-56,scanY-4,112,8);
+  ctx.restore();
+
+  // pupil
+  const pr = 18 * pupilS;
+  const pg=ctx.createRadialGradient(cx+ox,cy+oy,0,cx+ox,cy+oy,pr);
+  pg.addColorStop(0,'#000');
+  pg.addColorStop(.7,'#050815');
+  pg.addColorStop(1,`hsla(${hue},60%,10%,.8)`);
+  ctx.save();
+  ctx.shadowBlur=10; ctx.shadowColor=`hsla(${hue},100%,40%,.4)`;
+  ctx.beginPath(); ctx.arc(cx+ox,cy+oy,pr,0,Math.PI*2);
+  ctx.fillStyle=pg; ctx.fill();
+  ctx.restore();
+
+  // glint/shine
+  ctx.save();
+  ctx.shadowBlur=4; ctx.shadowColor='rgba(255,255,255,.8)';
+  ctx.beginPath(); ctx.ellipse(cx+ox-11,cy+oy-12,7,4.5,-0.4,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,.65)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+ox+9,cy+oy-8,2.5,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,.35)'; ctx.fill();
+  ctx.restore();
+
+  // lid (clip top+bottom)
+  if(lid>0){
+    const l=lid;
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,W,cy-R+(R+4)*l);       // top lid
+    ctx.fillRect(0,cy+R-(R+4)*l,W,H);        // bottom lid
+  }
+
+  ctx.restore(); // unclip
+
+  // glitch effect
+  if(S.glitch && Math.random()<.4){
+    const gy=Math.random()*H, gh=Math.random()*8+2;
+    ctx.save();
+    const id=ctx.getImageData(0,gy,W,gh);
+    const off=(Math.random()-.5)*20;
+    ctx.putImageData(id,off,gy);
+    ctx.restore();
+  }
 }
 
-schedBlink(); schedLook(); schedIdle();
+// ─────────────────────────────────────────────────────────────────────────────
+//  BEHAVIORS
+// ─────────────────────────────────────────────────────────────────────────────
+let behaviorTimer=0, nextBehavior=2000;
+const behaviors=[];
 
-// ── Particles background ──────────────────────────────────────────────────────
-(function spawnParticles(){
-  const bg = document.getElementById('bg');
-  for(let i=0;i<18;i++){
-    const p = document.createElement('div');
-    p.className='particle';
-    const sz = 2+Math.random()*4;
-    const x = Math.random()*100, dur = 8+Math.random()*20;
-    p.style.cssText = `width:${sz}px;height:${sz}px;left:${x}%;bottom:-10px;
-      background:rgba(${30+Math.random()*40},${80+Math.random()*60},${180+Math.random()*60},.4);
-      animation-duration:${dur}s;animation-delay:-${Math.random()*dur}s`;
-    bg.appendChild(p);
+function sched(fn,delay){ behaviors.push({fn,at:performance.now()+delay}); }
+
+function runBehaviors(now){
+  for(let i=behaviors.length-1;i>=0;i--){
+    if(now>=behaviors[i].at){ behaviors[i].fn(); behaviors.splice(i,1); }
   }
-})();
+}
 
-// ── E-STOP ────────────────────────────────────────────────────────────────────
-function handleEstop(e) {
+function lookAt(x,y,dur=400){ S.tx=x; S.ty=y; }
+function lookReset(delay=0){ sched(()=>{S.tx=0;S.ty=0;},delay); }
+
+const IDLE_FNS=[
+  // look left/right
+  ()=>{lookAt((Math.random()>.5?1:-1)*.75, (Math.random()-.5)*.4);lookReset(800+Math.random()*600);},
+  // look up curious
+  ()=>{lookAt((Math.random()-.5)*.3,-0.8);S.browLT=-.4;S.browRT=-.4;sched(()=>{S.browLT=0;S.browRT=0;lookReset()},1000);},
+  // slow blink
+  ()=>{S.lid=1;sched(()=>{S.lid=0;},200);},
+  // wink
+  ()=>{ const l=Math.random()>.5; if(l){S.lid=1;sched(()=>{S.lid=0;},120);}
+    else{const saved=S.lidR;S.lidR=1;sched(()=>{S.lidR=saved;},120);}},
+  // double blink
+  ()=>{S.lid=1;sched(()=>{S.lid=0;sched(()=>{S.lid=1;sched(()=>{S.lid=0;},120)},200)},120);},
+  // surprised wide
+  ()=>{S.pupilTarget=1.6;S.browLT=.6;S.browRT=.6;lookAt(0,0);sched(()=>{S.pupilTarget=1;S.browLT=0;S.browRT=0;},900);},
+  // side-eye skeptical
+  ()=>{lookAt(.9,.1);S.lid=.45;sched(()=>{S.lid=0;lookReset();},1200);},
+  // scan left-right fast
+  ()=>{lookAt(-1,0);sched(()=>lookAt(1,0),250);sched(()=>lookAt(-1,0),500);sched(()=>lookAt(1,0),750);sched(()=>{lookAt(0,0);},1000);},
+  // squint and look down
+  ()=>{S.lid=.5;lookAt(0,.6);sched(()=>{S.lid=0;lookReset();},1400);},
+  // pupil contract/expand
+  ()=>{S.pupilTarget=.5;sched(()=>{S.pupilTarget=1.3;sched(()=>{S.pupilTarget=1;},500);},400);},
+  // rainbow flash — hue jump
+  ()=>{const orig=S.hue;S.hue=(S.hue+120)%360;sched(()=>{S.hue=orig;},600);},
+  // look down at estop
+  ()=>{lookAt(.6,.9);sched(()=>lookReset(),700);},
+];
+
+function doIdleBehavior(){
+  if(S.estop||S.mood==='estop') return;
+  const fn=IDLE_FNS[Math.floor(Math.random()*IDLE_FNS.length)];
+  fn();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  MOOD
+// ─────────────────────────────────────────────────────────────────────────────
+function setMood(m){
+  S.mood=m;
+  S.hue=MOOD_HUE[m]??210;
+  document.getElementById('mood').textContent=MOOD_LABEL[m]??m;
+  document.getElementById('mpath').setAttribute('d',MOUTH_D[m]??MOUTH_D.idle);
+  document.getElementById('mpath').style.stroke=`hsl(${S.hue},70%,35%)`;
+  if(m==='recording'){S.irisRotSpeed=1.5; flash('● REC','#ff3060',600);}
+  else if(m==='ai'){S.irisRotSpeed=.8; S.hueSpeed=.15;}
+  else if(m==='estop'){S.irisRotSpeed=3; flash('E-STOP','#ff4040',3000);}
+  else if(m==='sleep'){S.irisRotSpeed=.05; S.lid=.75;}
+  else{S.irisRotSpeed=.3; S.hueSpeed=.04; if(m!=='estop')S.lid=0;}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  OVERLAY FLASH
+// ─────────────────────────────────────────────────────────────────────────────
+function flash(msg,color,dur){
+  const o=document.getElementById('overlay');
+  o.textContent=msg; o.style.color=color; o.style.opacity='1';
+  setTimeout(()=>o.style.opacity='0',dur);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  E-STOP
+// ─────────────────────────────────────────────────────────────────────────────
+let estopFired=false;
+function doEstop(e){
   e.preventDefault();
-  const btn = document.getElementById('estop-btn');
-  if (!estopActive) {
-    estopActive = true;
-    btn.classList.add('active-stop');
-    document.getElementById('estop-icon').textContent = '🛑';
+  const btn=document.getElementById('estop');
+  if(!estopFired){
+    estopFired=true;
+    btn.classList.add('fired');
+    btn.querySelector('.ico').textContent='🛑';
     setMood('estop');
-    squint(0.3);
-    fetch('/estop', {method:'POST'}).catch(()=>{});
-    // auto-release UI after 5s (server keeps sending zeros for 5s)
-    setTimeout(() => {
-      estopActive = false;
-      btn.classList.remove('active-stop');
-      document.getElementById('estop-icon').textContent = '⛔';
-      unsquint();
+    S.glitch=true;
+    fetch('/estop',{method:'POST'}).catch(()=>{});
+    setTimeout(()=>{
+      estopFired=false; S.glitch=false;
+      btn.classList.remove('fired');
+      btn.querySelector('.ico').textContent='⛔';
       setMood('idle');
-    }, 5200);
+    },5200);
   } else {
-    // second tap = release
-    estopActive = false;
-    btn.classList.remove('active-stop');
-    document.getElementById('estop-icon').textContent = '⛔';
-    fetch('/estop_release', {method:'POST'}).catch(()=>{});
-    unsquint();
+    estopFired=false; S.glitch=false;
+    btn.classList.remove('fired');
+    btn.querySelector('.ico').textContent='⛔';
+    fetch('/estop_release',{method:'POST'}).catch(()=>{});
     setMood('idle');
   }
 }
 
-// ── Clock ─────────────────────────────────────────────────────────────────────
-function updateClock(){
-  const now = new Date();
-  const t = now.toTimeString().slice(0,5);
-  document.getElementById('stat-time').textContent = t;
-  document.getElementById('time-big').textContent  = t;
-  document.getElementById('date-val').textContent  =
-    now.toLocaleDateString('ru-RU',{day:'2-digit',month:'short'});
-}
-updateClock(); setInterval(updateClock, 5000);
+// ─────────────────────────────────────────────────────────────────────────────
+//  MAIN LOOP
+// ─────────────────────────────────────────────────────────────────────────────
+let last=0;
+function lerp(a,b,t){return a+(b-a)*t;}
 
-// ── Status poll ───────────────────────────────────────────────────────────────
-function pollStatus(){
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(now-last,50); last=now;
+
+  // hue drift
+  if(S.mood==='ai') S.hue=(S.hue+S.hueSpeed*dt*.1)%360;
+  else if(S.mood==='idle') S.hue=lerp(S.hue,MOOD_HUE.idle,.005*dt);
+
+  // iris rotation
+  S.irisRot+=S.irisRotSpeed*dt*.001;
+
+  // scan
+  S.scan=(S.scan+dt*.0005)%1;
+
+  // lerp look
+  const spd=0.12*dt*.5;
+  S.lx=lerp(S.lx,S.tx,spd); S.ly=lerp(S.ly,S.ty,spd);
+
+  // lerp lids (shared target)
+  S.lidL=lerp(S.lidL,S.lid,spd); S.lidR=lerp(S.lidR,S.lid,spd);
+
+  // lerp brows
+  S.browL=lerp(S.browL,S.browLT,.1*dt*.08);
+  S.browR=lerp(S.browR,S.browRT,.1*dt*.08);
+
+  // lerp pupils
+  S.pupilL=lerp(S.pupilL,S.pupilTarget,.08*dt*.08);
+  S.pupilR=lerp(S.pupilR,S.pupilTarget,.08*dt*.08);
+
+  // idle behavior trigger
+  behaviorTimer+=dt;
+  if(behaviorTimer>nextBehavior){
+    behaviorTimer=0;
+    nextBehavior=1200+Math.random()*3500;
+    doIdleBehavior();
+  }
+  runBehaviors(now);
+
+  // draw
+  drawBg(now);
+  drawEye(eL,S.lx,S.ly,S.lidL,S.pupilL,S.hue,now,'L',S.irisRot);
+  drawEye(eR,S.lx,S.ly,S.lidR,S.pupilR,S.hue,now,'R',S.irisRot);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CLOCK + STATUS
+// ─────────────────────────────────────────────────────────────────────────────
+function tick(){
+  const n=new Date();
+  const t=n.toTimeString().slice(0,5);
+  document.getElementById('clk').textContent=t;
+  document.getElementById('tbig').textContent=t;
+  document.getElementById('date').textContent=n.toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'});
+}
+tick(); setInterval(tick,10000);
+
+setInterval(()=>{
   fetch('/status').then(r=>r.json()).then(s=>{
-    lastStatus = s;
-    document.getElementById('stat-ip').textContent   = s.ip || '?';
-    document.getElementById('stat-temp').textContent = s.temp!=null ? s.temp : '?';
-    document.getElementById('stat-up').textContent   = s.uptime || '?';
-    document.getElementById('load-val').textContent  = s.load != null ? s.load.toFixed(2) : '?';
-    document.getElementById('zmq-val').textContent   = s.zmq ? 'OK' : '—';
-    const dot = document.getElementById('conn-dot');
-    dot.className = 'dot-conn' + (s.zmq ? ' ok' : '');
-    // auto mood from status
-    if (!estopActive) {
-      if (s.estop) setMood('estop');
-    }
-  }).catch(()=>{
-    document.getElementById('conn-dot').className = 'dot-conn';
-  });
-}
-pollStatus(); setInterval(pollStatus, 3000);
+    document.getElementById('nip').textContent=s.ip??'—';
+    document.getElementById('temp').textContent=s.temp??'—';
+    document.getElementById('upt').textContent=s.uptime??'—';
+    document.getElementById('load').textContent=s.load?.toFixed(2)??'—';
+    document.getElementById('zmq').textContent=s.zmq?'ON':'—';
+    const d=document.getElementById('ndot');
+    d.className='dot'+(s.zmq?' ok':'');
+    if(s.estop&&!estopFired) setMood('estop');
+  }).catch(()=>{});
+},3000);
 
-// ── Wake animation on load ────────────────────────────────────────────────────
-closeEyes();
-setTimeout(() => {
-  openEyes();
-  setTimeout(() => { blink(true); setMood('idle'); }, 600);
-}, 400);
+// ─────────────────────────────────────────────────────────────────────────────
+//  BOOT ANIMATION
+// ─────────────────────────────────────────────────────────────────────────────
+S.lid=1; S.pupilTarget=0;
+sched(()=>{S.lid=0;S.pupilTarget=1;flash('ALOHA','#40c0ff',1200);setMood('idle');},700);
+
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
