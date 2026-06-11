@@ -11,10 +11,10 @@ network:
       dhcp4: true
       access-points:
         "Rostelecom-55":
-          password: "RESTORE_ME"
+          password: "876010659079"
         "ASUS":
-          password: "RESTORE_ME"
-        "CTT_wifi":
-          password: "RESTORE_ME"
+          password: "485454qwer"
         "Ёжик":
-          password: "RESTORE_ME"
+          password: "apel_sin55"
+        "CTT_wifi":
+          password: "485454QwEr"
