@@ -18,6 +18,10 @@ REMOTE_IP  = os.environ.get("ROBOT_IP", "192.168.31.170")
 CMD_PORT   = int(os.environ.get("CMD_PORT", 5555))
 OBS_PORT   = int(os.environ.get("OBS_PORT", 5556))
 WEB_PORT   = int(os.environ.get("WEB_PORT", 8080))
+# Extra camera server running on Pi (robot_cam_server.py) for cameras not in lekiwi_host
+CAM_SERVER_PORT = int(os.environ.get("CAM_SERVER_PORT", 8091))
+# /dev/videoN indices served by cam server (not via ZMQ obs)
+CAM_SERVER_DEVS = [int(x) for x in os.environ.get("CAM_SERVER_DEVS", "0,2,4,6,8").split(",")]
 BINDINGS_FILE      = Path(__file__).parent / "gamepad_bindings.json"
 ARM_BINDINGS_FILE  = Path(__file__).parent / "arm_bindings.json"
 CAM_LABELS_FILE    = Path(__file__).parent / "camera_labels.json"
@@ -576,6 +580,36 @@ threading.Thread(target=infer_watch, daemon=True).start()
 # ── Flask ─────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
 
+@app.route('/rawcam/<int:idx>')
+def rawcam_stream(idx):
+    """Proxy MJPEG stream from robot_cam_server.py on Pi."""
+    import urllib.request
+    url = f"http://{REMOTE_IP}:{CAM_SERVER_PORT}/cam/{idx}"
+    def gen():
+        try:
+            req = urllib.request.urlopen(url, timeout=5)
+            buf = b""
+            while True:
+                chunk = req.read(4096)
+                if not chunk: break
+                buf += chunk
+                start = buf.find(b"--frame")
+                if start >= 0:
+                    yield buf[start:]
+                    buf = b""
+        except Exception:
+            time.sleep(1)
+    return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route('/rawcam_snap/<int:idx>')
+def rawcam_snap(idx):
+    import urllib.request
+    try:
+        data = urllib.request.urlopen(f"http://{REMOTE_IP}:{CAM_SERVER_PORT}/snap/{idx}", timeout=3).read()
+        return Response(data, mimetype="image/jpeg")
+    except Exception:
+        return "no frame", 404
+
 @app.route('/camera/<name>')
 def camera_stream(name):
     def gen():
@@ -656,6 +690,7 @@ def status():
             odom=dict(state["odom"]),
             cameras=state["camera_names"],
             camera_labels=cam_labels,
+            rawcam_devs=CAM_SERVER_DEVS,
             inference_mode=state["inference_mode"],
             inference_status=state["inference_status"],
             recording=state["recording"],

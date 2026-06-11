@@ -147,8 +147,11 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
 <!-- CAMERAS -->
 <div class="view" id="view_cameras">
   <div class="card">
-    <div class="card-title">Camera Feeds</div>
+    <div class="card-title">Camera Feeds
+      <span style="font-size:11px;color:#3a5a80;margin-left:8px">ZMQ streams + direct MJPEG</span>
+    </div>
     <div class="cam-grid" id="cam_grid"><div class="cam-empty">Waiting for camera streams from robot…</div></div>
+    <div class="cam-grid" id="rawcam_grid" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -483,6 +486,31 @@ function renderCams(names, labels){
   document.getElementById('ai_cam').innerHTML=`<div class="cam-label">${flabel}</div><img src="/camera/${first}">`;
 }
 
+let rawCamList=[];
+function renderRawCams(devs){
+  if(JSON.stringify(devs)===JSON.stringify(rawCamList))return;
+  rawCamList=devs;
+  const grid=document.getElementById('rawcam_grid');
+  if(!devs||!devs.length){grid.innerHTML='';return;}
+  const partOpts=ROBOT_PARTS.map(p=>`<option value="${p}">${(PART_ICONS[p]||'')} ${p}</option>`).join('');
+  grid.innerHTML=devs.map(idx=>{
+    const key=`rawcam_${idx}`;
+    const lb=camLabels[key]||{};
+    const sel=lb.part||'—';
+    return `<div class="cam-box">
+      <div class="cam-label"><span id="badge_${key}" class="cam-part-badge ${lb.part?'part-'+lb.part:''}">${lb.part?((PART_ICONS[lb.part]||'')+' '+lb.part):'video'+idx}</span></div>
+      <img src="/rawcam/${idx}" alt="video${idx}" loading="lazy" onerror="this.style.display='none'">
+      <div class="cam-assign">
+        <label>Part</label>
+        <select onchange="assignCamera('${key}',this.value,'')">
+          ${ROBOT_PARTS.map(p=>`<option value="${p}"${p===sel?' selected':''}>${(PART_ICONS[p]||'')} ${p}</option>`).join('')}
+        </select>
+        <span style="font-size:10px;color:#304050;margin-left:4px">/dev/video${idx}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ── Status poll ───────────────────────────────────────────────────────────────
 setInterval(async()=>{
   try{
@@ -523,8 +551,10 @@ setInterval(async()=>{
     const wl=document.getElementById('wp_list');
     if(waypoints.length)wl.innerHTML=waypoints.map((w,i)=>`<div class="wp-item${i===wpIdx&&wpActive?' active':''}"><b>${i+1}</b> · x:${w.x.toFixed(2)} y:${w.y.toFixed(2)}</div>`).join('');
     else wl.innerHTML='<div style="color:#3a4a60;font-size:12px;padding:20px;text-align:center">Click on map to add waypoints</div>';
-    // cameras
+    // cameras (ZMQ)
     renderCams(d.cameras||[], d.camera_labels||{});
+    // raw cam server streams
+    renderRawCams(d.rawcam_devs||[]);
     // inference
     const is=document.getElementById('infer_status');
     is.className='infer-status '+(d.inference_mode?'running':'idle');
