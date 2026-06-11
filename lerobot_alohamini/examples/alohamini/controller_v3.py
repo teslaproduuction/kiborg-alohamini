@@ -100,13 +100,13 @@ DEFAULT_BINDINGS = {
 # PS4 axes (pygame): 0=LX 1=LY 2=RX 3=RY 4=L2(-1..+1) 5=R2(-1..+1)
 # PS4 buttons: 0=Cross 1=Circle 2=Square 3=Triangle 4=L1 5=R1 9=Options
 DEFAULT_ARM_BINDINGS = {
-    "device_index": 1,          # second connected gamepad
-    "arm_speed":    2.0,        # deg/frame at full stick deflection
+    "device_index": 1,          # second connected gamepad (auto-detected by name if possible)
+    "arm_speed":    0.6,        # deg/frame — lower = smoother, raise in /arm_settings
     "axes": {
-        "0": {"joint":"shoulder_pan",  "invert":False,"deadzone":0.12,"scale":1.0},
-        "1": {"joint":"shoulder_lift", "invert":True, "deadzone":0.12,"scale":1.0},
-        "2": {"joint":"elbow_flex",    "invert":False,"deadzone":0.12,"scale":1.0},
-        "3": {"joint":"wrist_flex",    "invert":True, "deadzone":0.12,"scale":1.0},
+        "0": {"joint":"shoulder_pan",  "invert":False,"deadzone":0.18,"scale":1.0},
+        "1": {"joint":"shoulder_lift", "invert":True, "deadzone":0.18,"scale":1.0},
+        "2": {"joint":"elbow_flex",    "invert":False,"deadzone":0.18,"scale":1.0},
+        "3": {"joint":"wrist_flex",    "invert":True, "deadzone":0.18,"scale":1.0},
     },
     "trigger_l2": 4,    # L2 → wrist_roll negative
     "trigger_r2": 5,    # R2 → wrist_roll positive
@@ -389,20 +389,32 @@ def gamepad_loop():
             print(f"[Gamepad] {count} device(s) detected")
         last_count = count
 
-        # Init base gamepad (index 0)
+        # Detect gamepads by name — RadioMaster=base, Sony/DualShock=arms
+        # Falls back to index if names don't match
+        _BASE_KEYWORDS = ("radiomaster","opentx","frsky","tx16","tx12","boxer","pocket")
+        _ARM_KEYWORDS  = ("sony","dualshock","dualsense","playstation","wireless controller","ps4","ps5")
+        all_names = [pygame.joystick.Joystick(i).get_name().lower() for i in range(count)]
+        print(f"[Gamepad] devices: {all_names}")
+
+        base_idx, arm_idx_auto = 0, arm_bindings.get("device_index", 1)
+        if count >= 2:
+            for i, n in enumerate(all_names):
+                if any(k in n for k in _BASE_KEYWORDS): base_idx = i
+                if any(k in n for k in _ARM_KEYWORDS):  arm_idx_auto = i
+
         joy_base = None
-        if count > 0:
-            joy_base = pygame.joystick.Joystick(0); joy_base.init()
+        if count > base_idx:
+            joy_base = pygame.joystick.Joystick(base_idx); joy_base.init()
             with lock: state["gamepad_name"] = joy_base.get_name()
+            print(f"[BaseGamepad] idx={base_idx}: {joy_base.get_name()}")
         else:
             with lock: state["gamepad_name"]="none"; state["gamepad_axes"]={}; state["gamepad_buttons"]={}
 
-        # Init arm gamepad (configurable index, default 1)
         joy_arm = None
-        if count > arm_idx:
-            joy_arm = pygame.joystick.Joystick(arm_idx); joy_arm.init()
+        if count > arm_idx_auto and arm_idx_auto != base_idx:
+            joy_arm = pygame.joystick.Joystick(arm_idx_auto); joy_arm.init()
             with lock: state["arm_gamepad_name"] = joy_arm.get_name()
-            print(f"[ArmGamepad] device {arm_idx}: {joy_arm.get_name()}")
+            print(f"[ArmGamepad]  idx={arm_idx_auto}: {joy_arm.get_name()}")
         else:
             with lock: state["arm_gamepad_name"]="none"; state["arm_gamepad_axes"]={}; state["arm_gamepad_buttons"]={}
 
