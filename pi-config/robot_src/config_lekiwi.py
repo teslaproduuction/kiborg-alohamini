@@ -44,10 +44,10 @@ def lekiwi_cameras_config() -> dict[str, CameraConfig]:
 @dataclass
 class LeKiwiConfig(RobotConfig):
     left_port: str = "/dev/ttyACM2"  # port to connect to the bus
-    right_port: str = "/dev/ttyACM0"  # port to connect to the bus
+    right_port: str = "/dev/ttyACM1"  # port to connect to the bus
     # Optional separate port for base motors (IDs 8-11).
     # When set, base motors are on their own Waveshare controller instead of left_bus.
-    base_port: str | None = "/dev/ttyACM1"
+    base_port: str | None = "/dev/ttyACM0"
     # When True, skip base motors entirely (arms-only mode).
     no_base: bool = False
     # When True, skip right arm entirely.

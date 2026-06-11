@@ -10,9 +10,10 @@ Disk:           58G total, 9.0G used, 47G free
 Groups:         pi adm tty dialout cdrom sudo audio video plugdev games users input render netdev gpio spi i2c
 
 Ports (ttyACM):
-  /dev/ttyACM0  right arm  (IDs 1-6, Waveshare #2)
-  /dev/ttyACM1  base       (IDs 8-11, Waveshare #3)
+  /dev/ttyACM0  base       (IDs 8-11, Waveshare #3)
+  /dev/ttyACM1  right arm  (IDs 1-6, Waveshare #2)
   /dev/ttyACM2  left arm   (IDs 1-6, Waveshare #1)
+  NOTE: ACM0/ACM1 swapped after Pi was remounted (2026-06-11)
 
 Calibration:    ~/.cache/huggingface/lerobot/calibration/robots/alohamini/AlohaMiniRobot.json
 Backup date:    2026-06-11
