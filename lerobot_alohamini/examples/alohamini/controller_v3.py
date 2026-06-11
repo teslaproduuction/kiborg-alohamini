@@ -55,6 +55,7 @@ state = {
     "arm_gamepad_axes": {},
     "arm_gamepad_buttons": {},
     "arm_control_side": "left",   # "left" | "right" | "both"
+    "arms_disarmed":    False,
     "connected":        False,
     # Cameras: name → base64 jpeg
     "cameras":        {},
@@ -161,6 +162,39 @@ def load_arm_bindings():
 def save_arm_bindings():
     ARM_BINDINGS_FILE.write_text(json.dumps(arm_bindings, indent=2))
 load_arm_bindings()
+
+# ── Arm presets (safe positions, units = calibrated -100..100) ───────────────
+# All values in middle of calibration range; tested not to cause self-collision.
+ARM_PRESETS = {
+    # flat rest: everything at neutral
+    "home": {"shoulder_pan":0, "shoulder_lift":0, "elbow_flex":0, "wrist_flex":0, "wrist_roll":0, "gripper":0},
+    # ready/observation: arms slightly raised and bent forward
+    "ready": {"shoulder_pan":0, "shoulder_lift":25, "elbow_flex":-45, "wrist_flex":20, "wrist_roll":0, "gripper":20},
+    # gripper actions only
+    "gripper_open":  {"gripper": 80},
+    "gripper_close": {"gripper":-60},
+}
+
+_move_thread = None
+
+def smooth_move(sides, target: dict, steps=40, duration=1.5):
+    """Interpolate arm joints to target over duration seconds."""
+    global _move_thread
+    def _run():
+        dt = duration / steps
+        with lock:
+            starts = {s: dict(state[f"arm_{s}"]) for s in sides}
+        for i in range(1, steps+1):
+            t = i / steps
+            with lock:
+                if state["arms_disarmed"]: break
+                for s in sides:
+                    for j, tgt in target.items():
+                        cur = starts[s][j]
+                        state[f"arm_{s}"][j] = cur + (tgt - cur) * t
+            time.sleep(dt)
+    _move_thread = threading.Thread(target=_run, daemon=True)
+    _move_thread.start()
 
 # ── Action builder ────────────────────────────────────────────────────────────
 def build_action():
@@ -682,6 +716,7 @@ def status():
             arm_gamepad_axes=state["arm_gamepad_axes"],
             arm_gamepad_buttons=state["arm_gamepad_buttons"],
             arm_control_side=state["arm_control_side"],
+            arms_disarmed=state["arms_disarmed"],
             arm_speed=arm_bindings.get("arm_speed", 2.0),
             odom=dict(state["odom"]),
             cameras=state["camera_names"],
@@ -704,6 +739,49 @@ def arm_side():
     if side not in ('left','right','both'): return jsonify(error="invalid"), 400
     with lock: state["arm_control_side"] = side
     return jsonify(side=side)
+
+@app.route('/arm/disarm', methods=['POST'])
+def arm_disarm():
+    """Disable torque on all arm motors (Pi-side via ZMQ special key)."""
+    with lock: state["arms_disarmed"] = True
+    # Send disarm command a few times to ensure delivery
+    payload = json.dumps({"__disarm_arms": True,
+                          "x.vel":0,"y.vel":0,"theta.vel":0,
+                          "lift_axis.height_mm": state["lift_height"]}).encode()
+    for _ in range(5):
+        try: cmd_sock.send(payload, flags=1)
+        except: pass
+        time.sleep(0.05)
+    return jsonify(ok=True, disarmed=True)
+
+@app.route('/arm/rearm', methods=['POST'])
+def arm_rearm():
+    """Re-enable torque on arm motors and sync positions from current obs."""
+    with lock:
+        state["arms_disarmed"] = False
+    payload = json.dumps({"__arm_arms": True,
+                          "x.vel":0,"y.vel":0,"theta.vel":0,
+                          "lift_axis.height_mm": state["lift_height"]}).encode()
+    for _ in range(5):
+        try: cmd_sock.send(payload, flags=1)
+        except: pass
+        time.sleep(0.05)
+    return jsonify(ok=True, disarmed=False)
+
+@app.route('/arm/preset', methods=['POST'])
+def arm_preset():
+    """Execute a named preset position smoothly."""
+    name = request.json.get('preset','home')
+    sides_req = request.json.get('sides', None)  # None = use arm_control_side
+    preset = ARM_PRESETS.get(name)
+    if not preset: return jsonify(error=f"unknown preset: {name}"), 400
+    with lock:
+        disarmed = state["arms_disarmed"]
+        s = sides_req or state["arm_control_side"]
+    if disarmed: return jsonify(error="arms are disarmed"), 400
+    sides = ["arm_left","arm_right"] if s == "both" else [f"arm_{s}"]
+    smooth_move([x.replace("arm_","") for x in sides], preset)
+    return jsonify(ok=True, preset=name, sides=sides)
 
 @app.route('/arm_bindings', methods=['GET'])
 def get_arm_bindings(): return jsonify(arm_bindings)
