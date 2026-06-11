@@ -754,6 +754,22 @@ class LeKiwi(Robot):
             np.ndarray: the action sent to the motors, potentially clipped.
         """
         # arm_goal_pos = {k: v for k, v in action.items() if k.endswith(".pos")}
+        # Special control commands
+        if action.get("__disarm_arms"):
+            try: self.left_bus.disable_torque(self.left_arm_motors)
+            except Exception as e: print(f"[disarm left] {e}")
+            if self.right_bus:
+                try: self.right_bus.disable_torque(self.right_arm_motors)
+                except Exception as e: print(f"[disarm right] {e}")
+            return {}
+        if action.get("__arm_arms"):
+            try: self.left_bus.enable_torque(self.left_arm_motors)
+            except Exception as e: print(f"[arm left] {e}")
+            if self.right_bus:
+                try: self.right_bus.enable_torque(self.right_arm_motors)
+                except Exception as e: print(f"[arm right] {e}")
+            return {}
+
         left_pos  = {k: v for k, v in action.items() if k.endswith(".pos") and k.startswith("arm_left_") and k.replace(".pos", "") in self.left_bus.motors}
         right_pos = {k: v for k, v in action.items() if k.endswith(".pos") and k.startswith("arm_right_") and self.right_bus is not None and k.replace(".pos", "") in self.right_bus.motors}
 

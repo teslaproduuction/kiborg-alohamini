@@ -58,6 +58,23 @@ a.nav:hover{border-color:#4a9eff;color:#4a9eff}
 .sm-btn{padding:7px;background:#1a2030;border:1px solid #253040;border-radius:6px;color:#8090b0;cursor:pointer;touch-action:none;font-size:15px;text-align:center;flex:1}
 .sm-btn:active,.sm-btn.on{background:#4a9eff;color:#000}
 
+/* Quick action buttons */
+.qbtn{padding:6px 14px;border-radius:6px;border:1px solid #253040;background:#131a24;color:#8aaccc;cursor:pointer;font-size:12px;font-weight:600;transition:all .12s;white-space:nowrap}
+.qbtn:hover{background:#1e2d40;border-color:#4a7aaa;color:#b0d0f0}
+.qbtn:active{transform:scale(.94)}
+.qbtn-danger{border-color:#6a2020;background:#1a0808;color:#f08080}
+.qbtn-danger:hover{background:#2a1010;border-color:#c05050;color:#ffaaaa}
+.qbtn-danger.fired{background:#400;border-color:#f00;color:#f88;animation:qpulse .4s infinite alternate}
+.qbtn-ok{border-color:#204a20;background:#081808;color:#80d080}
+.qbtn-ok:hover{background:#102010;border-color:#50a050}
+.qbtn-green{border-color:#1a4020;color:#60d090}
+.qbtn-green:hover{background:#0d2015}
+.qbtn-red{border-color:#402020;color:#d07060}
+.qbtn-red:hover{background:#200d0d}
+.qbtn-side{border-color:#1e2535;color:#4a6080;min-width:46px}
+.qbtn-side.active-side{background:#0d2040;border-color:#3a6aaa;color:#7ab0e0}
+@keyframes qpulse{from{box-shadow:0 0 0 #f00}to{box-shadow:0 0 12px #f00}}
+
 /* 3D */
 #viewer{width:100%;height:320px;background:#070b12;border-radius:8px}
 .arm-sel{display:flex;gap:4px;margin:8px 0 6px}
@@ -156,6 +173,28 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
 
 <!-- ARMS 3D -->
 <div class="view" id="view_arms">
+  <!-- Arm quick controls bar -->
+  <div class="card" style="margin-bottom:8px;padding:10px 14px">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <!-- Disarm / Arm -->
+      <button id="disarm-btn" class="qbtn qbtn-danger" onclick="armDisarm()"
+        title="Disable motor torque — motors go limp">⚡ DISARM</button>
+      <button id="rearm-btn"  class="qbtn qbtn-ok"     onclick="armRearm()"
+        title="Re-enable torque — motors hold position" style="display:none">✅ ARM</button>
+      <div style="width:1px;height:28px;background:#1e2535;margin:0 4px"></div>
+      <!-- Presets -->
+      <button class="qbtn" onclick="armPreset('home')"         title="All joints to 0">⬛ Home</button>
+      <button class="qbtn" onclick="armPreset('ready')"        title="Ready observation pose">🤖 Ready</button>
+      <button class="qbtn qbtn-green" onclick="armPreset('gripper_open')"  title="Open gripper">🫸 Open</button>
+      <button class="qbtn qbtn-red"   onclick="armPreset('gripper_close')" title="Close gripper">🤜 Close</button>
+      <!-- Side selector -->
+      <div style="width:1px;height:28px;background:#1e2535;margin:0 4px"></div>
+      <span style="font-size:11px;color:#4a6080">Arm:</span>
+      <button class="qbtn qbtn-side active-side" id="sq-left"  onclick="setSideQ('left')">Left</button>
+      <button class="qbtn qbtn-side"              id="sq-right" onclick="setSideQ('right')">Right</button>
+      <button class="qbtn qbtn-side"              id="sq-both"  onclick="setSideQ('both')">Both</button>
+    </div>
+  </div>
   <div class="grid2">
     <div class="card">
       <div class="card-title">3D Visualization (drag to orbit)</div>
@@ -351,6 +390,40 @@ async function adj(side,joint,d){
 function showArm(side,el){document.querySelectorAll('.arm-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.arm-panel').forEach(p=>p.classList.remove('active'));el.classList.add('active');document.getElementById('panel_'+side).classList.add('active');}
 buildPanel('left');buildPanel('right');
 
+// ── Arm quick actions ─────────────────────────────────────────────────────────
+let _disarmed=false;
+async function armDisarm(){
+  if(!confirm('Отключить торк на руках? Моторы станут вялыми.')) return;
+  await fetch('/arm/disarm',{method:'POST'});
+  _disarmed=true;
+  document.getElementById('disarm-btn').style.display='none';
+  document.getElementById('rearm-btn').style.display='';
+}
+async function armRearm(){
+  await fetch('/arm/rearm',{method:'POST'});
+  _disarmed=false;
+  document.getElementById('rearm-btn').style.display='none';
+  document.getElementById('disarm-btn').style.display='';
+}
+async function armPreset(name){
+  if(_disarmed){alert('Руки дизармованы — сначала нажми ARM'); return;}
+  await fetch('/arm/preset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({preset:name})});
+}
+function setSideQ(s){
+  fetch('/arm/side',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({side:s})});
+  ['left','right','both'].forEach(x=>{
+    const el=document.getElementById('sq-'+x);
+    if(el) el.classList.toggle('active-side',x===s);
+  });
+}
+// sync side buttons with status
+function syncSideButtons(side){
+  ['left','right','both'].forEach(x=>{
+    const el=document.getElementById('sq-'+x);
+    if(el) el.classList.toggle('active-side',x===side);
+  });
+}
+
 // ── Base control ──────────────────────────────────────────────────────────────
 let actC=null,cIv=null;
 function startC(c){if(actC===c)return;stopC();actC=c;document.getElementById(c)?.classList.add('on');sendC(c);cIv=setInterval(()=>sendC(c),80);}
@@ -529,6 +602,14 @@ setInterval(async()=>{
     document.getElementById('lift_v').innerText=lh.toFixed(1);
     document.getElementById('lift_bar').style.height=Math.max(0,Math.min(100,lh/6))+'%';
     document.getElementById('spd_v').innerText=(d.speed||.3).toFixed(2)+' m/s';
+    // disarm state sync
+    if(d.arms_disarmed!==undefined){
+      _disarmed=d.arms_disarmed;
+      document.getElementById('disarm-btn').style.display=_disarmed?'none':'';
+      document.getElementById('rearm-btn').style.display=_disarmed?'':'none';
+    }
+    // side buttons
+    syncSideButtons(d.arm_control_side||'left');
     // arm ctrl info
     const aci=document.getElementById('arm-ctrl-info');
     if(aci&&agpName!=='none'){aci.innerText=`PS4 → ${(d.arm_control_side||'left').toUpperCase()} · spd ${(d.arm_speed||2.0).toFixed(1)}`;}
