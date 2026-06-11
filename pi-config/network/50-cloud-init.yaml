@@ -1,0 +1,20 @@
+network:
+  version: 2
+  ethernets:
+    eth0:
+      optional: true
+      dhcp4: true
+
+  wifis:
+    wlan0:
+      optional: true
+      dhcp4: true
+      access-points:
+        "Rostelecom-55":
+          password: "RESTORE_ME"
+        "ASUS":
+          password: "RESTORE_ME"
+        "CTT_wifi":
+          password: "RESTORE_ME"
+        "Ёжик":
+          password: "RESTORE_ME"

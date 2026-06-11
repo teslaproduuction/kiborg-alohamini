@@ -1,0 +1,86 @@
+{
+    "arm_left_shoulder_pan": {
+        "id": 1,
+        "drive_mode": 0,
+        "homing_offset": -2042,
+        "range_min": 768,
+        "range_max": 3490
+    },
+    "arm_left_shoulder_lift": {
+        "id": 2,
+        "drive_mode": 0,
+        "homing_offset": -558,
+        "range_min": 810,
+        "range_max": 3158
+    },
+    "arm_left_elbow_flex": {
+        "id": 3,
+        "drive_mode": 0,
+        "homing_offset": -1159,
+        "range_min": 924,
+        "range_max": 3144
+    },
+    "arm_left_wrist_flex": {
+        "id": 4,
+        "drive_mode": 0,
+        "homing_offset": -616,
+        "range_min": 766,
+        "range_max": 3106
+    },
+    "arm_left_wrist_roll": {
+        "id": 5,
+        "drive_mode": 0,
+        "homing_offset": -251,
+        "range_min": 0,
+        "range_max": 4095
+    },
+    "arm_left_gripper": {
+        "id": 6,
+        "drive_mode": 0,
+        "homing_offset": 228,
+        "range_min": 1986,
+        "range_max": 3458
+    },
+    "arm_right_shoulder_pan": {
+        "id": 1,
+        "drive_mode": 0,
+        "homing_offset": -1856,
+        "range_min": 715,
+        "range_max": 3449
+    },
+    "arm_right_shoulder_lift": {
+        "id": 2,
+        "drive_mode": 0,
+        "homing_offset": -580,
+        "range_min": 757,
+        "range_max": 3147
+    },
+    "arm_right_elbow_flex": {
+        "id": 3,
+        "drive_mode": 0,
+        "homing_offset": -1863,
+        "range_min": 885,
+        "range_max": 3104
+    },
+    "arm_right_wrist_flex": {
+        "id": 4,
+        "drive_mode": 0,
+        "homing_offset": -233,
+        "range_min": 927,
+        "range_max": 3276
+    },
+    "arm_right_wrist_roll": {
+        "id": 5,
+        "drive_mode": 0,
+        "homing_offset": 139,
+        "range_min": 0,
+        "range_max": 4095
+    },
+    "arm_right_gripper": {
+        "id": 6,
+        "drive_mode": 0,
+        "homing_offset": -1432,
+        "range_min": 2044,
+        "range_max": 3522
+    }
+}
