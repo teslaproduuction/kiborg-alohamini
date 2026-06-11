@@ -1,0 +1,14 @@
+[Unit]
+Description=AlohaMini Robot Face Display
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/lerobot_alohamini/examples/alohamini
+ExecStart=/home/pi/miniforge3/envs/lerobot/bin/python robot_display.py
+Restart=always
+RestartSec=3
+Environment=DISPLAY_PORT=8090
+
+[Install]
+WantedBy=multi-user.target
