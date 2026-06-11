@@ -178,9 +178,9 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <!-- Disarm / Arm -->
       <button id="disarm-btn" class="qbtn qbtn-danger" onclick="armDisarm()"
-        title="Disable motor torque — motors go limp">⚡ DISARM</button>
+        title="Disable torque on ALL motors — robot goes limp (SA↑ on RC)">⚡ DISARM ROBOT</button>
       <button id="rearm-btn"  class="qbtn qbtn-ok"     onclick="armRearm()"
-        title="Re-enable torque — motors hold position" style="display:none">✅ ARM</button>
+        title="Re-enable torque on ALL motors (SA↓ on RC)" style="display:none">✅ ARM ROBOT</button>
       <div style="width:1px;height:28px;background:#1e2535;margin:0 4px"></div>
       <!-- Presets -->
       <button class="qbtn" onclick="armPreset('home')"         title="All joints to 0">⬛ Home</button>
@@ -393,7 +393,7 @@ buildPanel('left');buildPanel('right');
 // ── Arm quick actions ─────────────────────────────────────────────────────────
 let _disarmed=false;
 async function armDisarm(){
-  if(!confirm('Отключить торк на руках? Моторы станут вялыми.')) return;
+  if(!confirm('Дизармировать ВЕСЬ робот? Все моторы станут вялыми.')) return;
   await fetch('/arm/disarm',{method:'POST'});
   _disarmed=true;
   document.getElementById('disarm-btn').style.display='none';
@@ -406,7 +406,7 @@ async function armRearm(){
   document.getElementById('disarm-btn').style.display='';
 }
 async function armPreset(name){
-  if(_disarmed){alert('Руки дизармованы — сначала нажми ARM'); return;}
+  if(_disarmed){alert('Робот дизармован — сначала нажми ARM ROBOT'); return;}
   await fetch('/arm/preset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({preset:name})});
 }
 function setSideQ(s){
@@ -603,8 +603,8 @@ setInterval(async()=>{
     document.getElementById('lift_bar').style.height=Math.max(0,Math.min(100,lh/6))+'%';
     document.getElementById('spd_v').innerText=(d.speed||.3).toFixed(2)+' m/s';
     // disarm state sync
-    if(d.arms_disarmed!==undefined){
-      _disarmed=d.arms_disarmed;
+    if(d.robot_disarmed!==undefined){
+      _disarmed=d.robot_disarmed;
       document.getElementById('disarm-btn').style.display=_disarmed?'none':'';
       document.getElementById('rearm-btn').style.display=_disarmed?'':'none';
     }

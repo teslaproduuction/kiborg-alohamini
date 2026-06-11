@@ -57,18 +57,27 @@
       "label": "X"
     },
     "3": {
-      "action": "none",
-      "label": "Y"
+      "action": "stop_base",
+      "label": "RTN"
     },
     "4": {
       "action": "speed_down",
-      "label": "LB"
+      "label": "PAGE"
     },
     "5": {
       "action": "speed_up",
-      "label": "RB"
+      "label": "PWR"
+    },
+    "6": {
+      "action": "none",
+      "label": "SA"
+    },
+    "7": {
+      "action": "none",
+      "label": "SB"
     }
   },
+  "sa_arm_btn": 6,
   "key_map": {
     "a": "theta+",
     "d": "theta-",
