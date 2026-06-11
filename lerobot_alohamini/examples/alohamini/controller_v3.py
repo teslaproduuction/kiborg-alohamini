@@ -18,8 +18,9 @@ REMOTE_IP  = os.environ.get("ROBOT_IP", "192.168.31.170")
 CMD_PORT   = int(os.environ.get("CMD_PORT", 5555))
 OBS_PORT   = int(os.environ.get("OBS_PORT", 5556))
 WEB_PORT   = int(os.environ.get("WEB_PORT", 8080))
-BINDINGS_FILE     = Path(__file__).parent / "gamepad_bindings.json"
-ARM_BINDINGS_FILE = Path(__file__).parent / "arm_bindings.json"
+BINDINGS_FILE      = Path(__file__).parent / "gamepad_bindings.json"
+ARM_BINDINGS_FILE  = Path(__file__).parent / "arm_bindings.json"
+CAM_LABELS_FILE    = Path(__file__).parent / "camera_labels.json"
 MESH_DIR   = Path(r"D:\Проекты\Kiborg\AlohaMini\simulation\src\Aloha\meshes")
 
 # ── ZMQ ───────────────────────────────────────────────────────────────────────
@@ -130,6 +131,21 @@ def load_bindings():
 def save_bindings():
     BINDINGS_FILE.write_text(json.dumps(bindings, indent=2))
 load_bindings()
+
+# ── Camera labels ─────────────────────────────────────────────────────────────
+# Maps camera key (from ZMQ obs) → robot part label + display metadata
+ROBOT_PARTS = ["front","rear","top","wrist_left","wrist_right","custom"]
+
+cam_labels = {}
+def load_cam_labels():
+    global cam_labels
+    if CAM_LABELS_FILE.exists():
+        try: cam_labels = json.loads(CAM_LABELS_FILE.read_text()); return
+        except: pass
+    cam_labels = {}
+def save_cam_labels():
+    CAM_LABELS_FILE.write_text(json.dumps(cam_labels, indent=2))
+load_cam_labels()
 
 arm_bindings = {}
 def load_arm_bindings():
@@ -561,6 +577,21 @@ def camera_stream(name):
             time.sleep(1/25)
     return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
+@app.route('/camera_labels', methods=['GET'])
+def get_cam_labels():
+    return jsonify(labels=cam_labels, parts=ROBOT_PARTS)
+
+@app.route('/camera_labels', methods=['POST'])
+def set_cam_labels():
+    d = request.json
+    cam_name = d.get('camera')
+    part     = d.get('part', '')
+    note     = d.get('note', '')
+    if cam_name:
+        cam_labels[cam_name] = {'part': part, 'note': note}
+        save_cam_labels()
+    return jsonify(ok=True, labels=cam_labels)
+
 @app.route('/camera_snapshot/<name>')
 def camera_snapshot(name):
     with lock: b64 = state["cameras"].get(name, "")
@@ -612,6 +643,7 @@ def status():
             arm_speed=arm_bindings.get("arm_speed", 2.0),
             odom=dict(state["odom"]),
             cameras=state["camera_names"],
+            camera_labels=cam_labels,
             inference_mode=state["inference_mode"],
             inference_status=state["inference_status"],
             recording=state["recording"],
