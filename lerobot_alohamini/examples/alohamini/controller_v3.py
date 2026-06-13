@@ -890,6 +890,32 @@ def _do_arm_base_only():
         except: pass
         time.sleep(0.03)
 
+@app.route('/sysinfo')
+def sysinfo():
+    import subprocess
+    info = {"cpu": 0.0, "ram": 0.0, "gpu": None, "gpu_mem": None, "gpu_name": None}
+    try:
+        import psutil
+        info["cpu"] = psutil.cpu_percent(interval=None)
+        vm = psutil.virtual_memory()
+        info["ram"] = vm.percent
+    except ImportError:
+        pass
+    # GPU via nvidia-smi (works without extra packages)
+    try:
+        out = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total,name",
+             "--format=csv,noheader,nounits"],
+            timeout=1
+        ).decode().strip().split("\n")[0].split(",")
+        info["gpu"]      = float(out[0].strip())
+        info["gpu_mem"]  = round(float(out[1].strip()) / 1024, 1)   # GB used
+        info["gpu_total"]= round(float(out[2].strip()) / 1024, 1)   # GB total
+        info["gpu_name"] = out[3].strip()
+    except Exception:
+        pass
+    return jsonify(info)
+
 @app.route('/pi/shutdown', methods=['POST'])
 def pi_shutdown():
     import subprocess

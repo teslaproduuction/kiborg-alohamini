@@ -281,6 +281,23 @@ input[type=text],input[type=number]{width:100%;background:var(--bg);border:1px s
     <div class="gp-badge" id="arm-gp" title="Arm gamepad (PS4)">NO PAD</div>
   </div>
 
+  <!-- PC system metrics -->
+  <div class="topbar-status" id="sys-metrics" style="gap:6px">
+    <div class="status-pill" id="cpu-pill" title="CPU usage">
+      <span style="color:var(--txt3);font-size:9px">CPU</span>
+      <span id="cpu-val" style="font-family:var(--mono);font-size:10px">—</span>
+    </div>
+    <div class="status-pill" id="ram-pill" title="RAM usage">
+      <span style="color:var(--txt3);font-size:9px">RAM</span>
+      <span id="ram-val" style="font-family:var(--mono);font-size:10px">—</span>
+    </div>
+    <div class="status-pill" id="gpu-pill" title="GPU" style="display:none">
+      <span style="color:var(--txt3);font-size:9px" id="gpu-label">GPU</span>
+      <span id="gpu-val" style="font-family:var(--mono);font-size:10px">—</span>
+      <span style="color:var(--txt3);font-size:9px" id="gpu-mem-val"></span>
+    </div>
+  </div>
+
   <!-- ARM status -->
   <div class="topbar-arm">
     <span id="arm-status-nav" onclick="navToggleArm()" title="Click to ARM / DISARM">⚡ DISARMED</span>
@@ -626,6 +643,33 @@ function _updateArmStatusNav(disarmed){
     el.classList.add('armed');
   }
 }
+
+// ── PC system metrics ─────────────────────────────────────────────────────────
+function _metricColor(pct){
+  if(pct>=80) return 'var(--red)';
+  if(pct>=55) return 'var(--accent)';
+  return 'var(--green)';
+}
+setInterval(async()=>{
+  try{
+    const d=await(await fetch('/sysinfo')).json();
+    const cpu=d.cpu??0, ram=d.ram??0;
+    const cv=document.getElementById('cpu-val');
+    const rv=document.getElementById('ram-val');
+    if(cv){cv.textContent=cpu.toFixed(0)+'%';cv.style.color=_metricColor(cpu);}
+    if(rv){rv.textContent=ram.toFixed(0)+'%';rv.style.color=_metricColor(ram);}
+    const gp=document.getElementById('gpu-pill');
+    const gv=document.getElementById('gpu-val');
+    const gm=document.getElementById('gpu-mem-val');
+    const gl=document.getElementById('gpu-label');
+    if(d.gpu!==null&&d.gpu!==undefined){
+      if(gp)gp.style.display='';
+      if(gv){gv.textContent=d.gpu.toFixed(0)+'%';gv.style.color=_metricColor(d.gpu);}
+      if(gm&&d.gpu_mem!=null)gm.textContent=d.gpu_mem+'GB';
+      if(gl&&d.gpu_name)gl.textContent=d.gpu_name.replace(/NVIDIA GeForce /,'').substring(0,8);
+    }
+  }catch(e){}
+},2000);
 
 function toggleTheme(){
   const light=document.body.classList.toggle('light');
