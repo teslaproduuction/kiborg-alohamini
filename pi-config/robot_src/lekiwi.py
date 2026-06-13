@@ -760,13 +760,14 @@ class LeKiwi(Robot):
         # arm_goal_pos = {k: v for k, v in action.items() if k.endswith(".pos")}
         # Special control commands
         if action.get("__disarm_robot") or action.get("__disarm_arms") or action.get("__estop"):
-            try: self.left_bus.disable_torque(self.left_arm_motors)
+            # Disable ALL motors on each bus (no-args = all) for maximum reliability
+            try: self.left_bus.disable_torque()
             except Exception as e: print(f"[disarm left] {e}")
             if self.right_bus:
-                try: self.right_bus.disable_torque(self.right_arm_motors)
+                try: self.right_bus.disable_torque()
                 except Exception as e: print(f"[disarm right] {e}")
             if self.base_bus:
-                try: self.base_bus.disable_torque()   # wheels + lift
+                try: self.base_bus.disable_torque()
                 except Exception as e: print(f"[disarm base] {e}")
             print("[lekiwi] WHOLE ROBOT DISARMED")
             return {}
