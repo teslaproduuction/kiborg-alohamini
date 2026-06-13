@@ -425,7 +425,7 @@ _SIDE_CYCLE = ["left", "right", "both"]
 def gamepad_loop():
     pygame.init(); pygame.joystick.init()
     last_btns = {}; arm_last_btns = {}; last_count = -1; last_sa_armed = None
-    last_both_triggers = False
+    last_trig_state = "none"  # none | left | right | both
     while True:
         pygame.joystick.quit(); pygame.joystick.init()
         count = pygame.joystick.get_count()
@@ -520,24 +520,36 @@ def gamepad_loop():
 
                     # Both triggers pressed → ARM (rising edge only)
                     # If PS4 not connected: arm base only; if PS4 connected: full arm
-                    both_now = trig_l_val > 0.6 and trig_r_val > 0.6  # >0.6 = ~80% press
-                    if both_now and not last_both_triggers:
-                        # Rising edge: both pressed → ARM
-                        with lock: disarmed = state["robot_disarmed"]
-                        if disarmed:
-                            if joy_arm:
-                                print("[Triggers] both pressed + PS4 → FULL ARM")
+                    # Trigger state machine — 0.6 threshold (~80% press)
+                    l_on = trig_l_val > 0.6
+                    r_on = trig_r_val > 0.6
+                    trig_state = "both" if (l_on and r_on) else "left" if l_on else "right" if r_on else "none"
+                    if trig_state != last_trig_state:
+                        if trig_state == "none":
+                            # Any trigger released → DISARM
+                            with lock: disarmed = state["robot_disarmed"]
+                            if not disarmed:
+                                print(f"[Triggers] {last_trig_state}→none → DISARM")
+                                threading.Thread(target=_do_disarm, daemon=True).start()
+                        elif joy_arm:
+                            # PS4 connected: per-arm arming
+                            with lock: disarmed = state["robot_disarmed"]
+                            if trig_state == "left":
+                                print("[Triggers] left only → ARM LEFT")
+                                threading.Thread(target=_do_arm_side, args=("left",), daemon=True).start()
+                            elif trig_state == "right":
+                                print("[Triggers] right only → ARM RIGHT")
+                                threading.Thread(target=_do_arm_side, args=("right",), daemon=True).start()
+                            elif trig_state == "both":
+                                print("[Triggers] both → FULL ARM")
                                 threading.Thread(target=_do_arm, daemon=True).start()
-                            else:
-                                print("[Triggers] both pressed, no PS4 → BASE ONLY ARM")
+                        else:
+                            # No PS4: base only on any trigger combo
+                            with lock: disarmed = state["robot_disarmed"]
+                            if disarmed:
+                                print(f"[Triggers] {trig_state}, no PS4 → BASE ARM")
                                 threading.Thread(target=_do_arm_base_only, daemon=True).start()
-                    elif not both_now and last_both_triggers:
-                        # Falling edge: triggers released → DISARM
-                        with lock: disarmed = state["robot_disarmed"]
-                        if not disarmed:
-                            print("[Triggers] released → DISARM")
-                            threading.Thread(target=_do_disarm, daemon=True).start()
-                    last_both_triggers = both_now
+                        last_trig_state = trig_state
 
                 # ── Arm gamepad (PS4) ─────────────────────────────────────
                 if joy_arm:
@@ -802,6 +814,18 @@ def _do_arm():
     with lock: lh = state["lift_height"]
     payload = json.dumps({"__arm_robot": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
+                          "lift_axis.height_mm": lh}).encode()
+    for _ in range(8):
+        try: cmd_sock.send(payload)
+        except: pass
+        time.sleep(0.03)
+
+def _do_arm_side(side: str):
+    """Arm one arm only: side='left' or 'right'."""
+    with lock: state["robot_disarmed"] = False
+    with lock: lh = state["lift_height"]
+    key = f"__arm_{side}"
+    payload = json.dumps({key: True, "x.vel":0,"y.vel":0,"theta.vel":0,
                           "lift_axis.height_mm": lh}).encode()
     for _ in range(8):
         try: cmd_sock.send(payload)
