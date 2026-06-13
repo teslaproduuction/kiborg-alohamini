@@ -110,12 +110,12 @@ DEFAULT_BINDINGS = {
 # PS4 buttons: 0=Cross 1=Circle 2=Square 3=Triangle 4=L1 5=R1 9=Options
 DEFAULT_ARM_BINDINGS = {
     "device_index": 1,          # second connected gamepad (auto-detected by name if possible)
-    "arm_speed":    0.6,        # deg/frame — lower = smoother, raise in /arm_settings
+    "arm_speed":    2.5,        # deg/frame — raise in /arm_settings for faster response
     "axes": {
-        "0": {"joint":"shoulder_pan",  "invert":False,"deadzone":0.25,"scale":1.0},
-        "1": {"joint":"shoulder_lift", "invert":True, "deadzone":0.25,"scale":1.0},
-        "2": {"joint":"elbow_flex",    "invert":False,"deadzone":0.25,"scale":1.0},
-        "3": {"joint":"wrist_flex",    "invert":True, "deadzone":0.25,"scale":1.0},
+        "0": {"joint":"shoulder_pan",  "invert":False,"deadzone":0.10,"scale":1.0},
+        "1": {"joint":"shoulder_lift", "invert":True, "deadzone":0.10,"scale":1.0},
+        "2": {"joint":"elbow_flex",    "invert":False,"deadzone":0.10,"scale":1.0},
+        "3": {"joint":"wrist_flex",    "invert":True, "deadzone":0.10,"scale":1.0},
     },
     "trigger_l2": 4,    # L2 → wrist_roll negative
     "trigger_r2": 5,    # R2 → wrist_roll positive
