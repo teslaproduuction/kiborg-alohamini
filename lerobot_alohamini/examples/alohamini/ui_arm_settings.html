@@ -1,452 +1,288 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Arm Gamepad Settings — AlohaMini</title>
+<meta charset="utf-8"><title>PS4 Arms Settings — AlohaMini</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',sans-serif;font-size:14px}
-a{color:#58a6ff;text-decoration:none}
-h2{font-size:18px;margin-bottom:12px;color:#e6edf3}
-h3{font-size:14px;color:#8b949e;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0d14;color:#c8d0e0;font-family:'Segoe UI',Arial,sans-serif}
+.topbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:#0d1018;
+  border-bottom:1px solid #1a2030;position:sticky;top:0;z-index:10}
+a.back{color:#4a9eff;text-decoration:none;font-size:13px}
+h2{font-size:15px;color:#a0d0ff;margin:0;font-weight:600}
+.gp-name{font-size:12px;color:#6a8aaa;margin-left:auto}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.card{background:#131822;border:1px solid #1e2535;border-radius:10px;padding:14px}
+.card-title{font-size:10px;color:#4a6080;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between}
+.reset-btn{font-size:11px;color:#f08080;cursor:pointer;background:none;border:1px solid #4a2020;
+  padding:2px 8px;border-radius:4px}
+.reset-btn:hover{background:#2a0808}
 
-.layout{display:grid;grid-template-columns:1fr 360px;gap:16px;padding:16px;height:100vh}
-.left{display:flex;flex-direction:column;gap:16px;overflow-y:auto}
-.right{display:flex;flex-direction:column;gap:16px}
+/* Speed row */
+.speed-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px;
+  background:#0d1520;border-radius:6px;border:1px solid #1a2535}
+.speed-row label{font-size:11px;color:#6a8aaa;min-width:70px}
+.speed-row input[type=range]{flex:1;accent-color:#a0d0ff}
+.speed-row .sv{min-width:36px;text-align:right;font-size:12px;color:#a0d0ff;font-weight:700}
 
-.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
+/* Input rows */
+.irow{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;
+  margin-bottom:3px;transition:background .1s;cursor:default;border:1px solid transparent}
+.irow:hover{background:#1a2230}
+.irow.active{background:#0a3050!important}
+.irow.listening{background:#2a1a00!important;animation:blink .4s infinite alternate}
+@keyframes blink{from{border-color:#a0d0ff}to{border-color:transparent}}
+.idx-badge{min-width:32px;font-size:11px;font-weight:700;color:#3a6080;text-align:center;
+  padding:2px 4px;border-radius:4px;background:#0d1520}
+.bar{width:90px;height:14px;background:#0d1520;border-radius:3px;overflow:hidden;position:relative;flex-shrink:0}
+.bar-fill{height:100%;background:#a0d0ff;transition:width .05s;position:absolute;left:50%;transform:translateX(-50%)}
+.bar-fill.neg{background:#f06060}
+.bar-center{position:absolute;left:50%;top:0;width:1px;height:100%;background:#2a4060}
+.btn-dot{width:14px;height:14px;border-radius:50%;background:#1a2535;border:1px solid #2a3a50;flex-shrink:0;transition:.1s}
+.btn-dot.on{background:#a0d0ff;box-shadow:0 0 6px #a0d0ff}
 
-/* Status bar */
-.statusbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.badge{padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
-.badge-ok{background:#1f4a2e;color:#3fb950}
-.badge-none{background:#2d1a1a;color:#f85149}
-.badge-left{background:#1a3050;color:#58a6ff}
-.badge-right{background:#2d1a40;color:#bc8cff}
-.badge-both{background:#1a3028;color:#3fb950}
+select.action-sel{flex:1;background:#0d1520;border:1px solid #1e2535;color:#c8d0e0;
+  border-radius:4px;padding:3px 6px;font-size:11px;min-width:0}
+select.action-sel:focus{outline:none;border-color:#a0d0ff}
+.bind-btn{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid #2a4060;
+  background:#0a1520;color:#a0d0ff;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.bind-btn:hover{background:#0d2540;border-color:#a0d0ff}
+.bind-btn.listening{background:#3a2000;border-color:#fa0;color:#fa0}
+.val-txt{font-size:11px;color:#a0d0ff;min-width:40px;text-align:right}
 
-/* PS4 SVG */
-#ps4-wrap{display:flex;justify-content:center}
-svg#ps4{width:100%;max-width:540px}
-.ps4-body{fill:#1e2433;stroke:#30363d;stroke-width:1.5}
-.ps4-btn{cursor:pointer;transition:filter .1s}
-.ps4-btn:hover{filter:brightness(1.6)}
-.ps4-axis-ring{fill:none;stroke:#30363d;stroke-width:2}
-.ps4-stick-dot{transition:transform .05s}
-.ps4-trigger{fill:#252d3d;stroke:#30363d;stroke-width:1.5;transition:fill .1s}
-.active-axis{stroke:#58a6ff !important}
-.active-btn{fill:#58a6ff !important}
-.gripper-btn{fill:#3fb950 !important}
+/* trigger L2/R2 config */
+.trig-row{display:flex;align-items:center;gap:10px;padding:8px;background:#0d1520;
+  border-radius:6px;border:1px solid #1a2535;margin-bottom:6px;font-size:12px}
+.trig-row label{color:#6a8aaa;min-width:55px}
+.trig-row input[type=number]{width:52px;background:#0a0d14;border:1px solid #2a3a55;
+  color:#c8d0e0;border-radius:4px;padding:3px 6px;font-size:12px}
 
-/* Mapping table */
-.map-table{width:100%;border-collapse:collapse}
-.map-table th,.map-table td{padding:5px 8px;border-bottom:1px solid #21262d;text-align:left;font-size:13px}
-.map-table th{color:#8b949e;font-weight:600}
-.map-row:hover{background:#1c2128}
-.joint-label{display:inline-block;padding:1px 7px;border-radius:4px;background:#1a3050;color:#58a6ff;font-size:12px}
-.btn-label{display:inline-block;padding:1px 7px;border-radius:4px;background:#1f2c1a;color:#3fb950;font-size:12px}
-
-/* Controls */
-.row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-label{min-width:120px;color:#8b949e;font-size:13px}
-input[type=number]{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:4px;padding:4px 8px;width:70px}
-input[type=range]{width:140px;accent-color:#58a6ff}
-
-/* Side selector */
-.side-btns{display:flex;gap:6px}
-.side-btn{padding:6px 18px;border-radius:6px;border:1px solid #30363d;background:#161b22;color:#8b949e;cursor:pointer;font-size:13px;transition:all .15s}
-.side-btn:hover{border-color:#58a6ff;color:#58a6ff}
-.side-btn.active{background:#1a3050;border-color:#58a6ff;color:#58a6ff;font-weight:600}
-.side-btn.active-r{background:#2d1a40;border-color:#bc8cff;color:#bc8cff;font-weight:600}
-.side-btn.active-b{background:#1a3028;border-color:#3fb950;color:#3fb950;font-weight:600}
-
-/* Action buttons */
-.btn{padding:6px 14px;border-radius:6px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;cursor:pointer;font-size:13px;transition:all .15s}
-.btn:hover{background:#30363d}
-.btn-save{background:#1a3050;border-color:#58a6ff;color:#58a6ff}
-.btn-save:hover{background:#1d3a60}
-.btn-danger{background:#2d1a1a;border-color:#f85149;color:#f85149}
-.btn-danger:hover{background:#3d2020}
-
-/* Axis bar */
-.axis-bar-wrap{display:flex;align-items:center;gap:6px;margin:2px 0}
-.axis-bar-bg{width:80px;height:6px;background:#21262d;border-radius:3px;overflow:hidden;position:relative}
-.axis-bar-fill{position:absolute;height:100%;background:#58a6ff;border-radius:3px;transition:width .05s,left .05s}
-.axis-name{font-size:11px;color:#6e7681;min-width:28px}
-
-/* Trigger bars */
-.trigger-wrap{display:flex;justify-content:space-around;margin-top:8px}
-.trigger-item{text-align:center}
-.trigger-bar-bg{width:30px;height:70px;background:#21262d;border-radius:4px;position:relative;overflow:hidden;margin:0 auto 4px}
-.trigger-bar-fill{position:absolute;bottom:0;width:100%;background:#58a6ff;transition:height .05s;border-radius:4px}
-
-.nav{display:flex;gap:10px;align-items:center;margin-bottom:16px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#3f3;box-shadow:0 0 5px #3f3;flex-shrink:0}
+.live-dot.off{background:#333;box-shadow:none}
+.no-gp{color:#4a6080;font-size:13px;padding:20px;text-align:center}
 </style>
 </head>
 <body>
+<div class="topbar">
+  <a class="back" href="/">← Back</a>
+  <h2>🕹️ PS4 / DualShock Arm Bindings</h2>
+  <span class="live-dot" id="live-dot"></span>
+  <span class="gp-name" id="gp-name">—</span>
+</div>
+
 <div class="layout">
-<!-- LEFT: PS4 diagram + live axes -->
-<div class="left">
-  <div class="nav">
-    <a href="/">← Main</a>
-    <a href="/settings">RadioMaster Settings</a>
-    <h2 style="margin:0">Arm Gamepad (PS4)</h2>
-  </div>
-
-  <!-- Status -->
+  <!-- BUTTONS -->
   <div class="card">
-    <div class="statusbar">
-      <span>PS4:</span>
-      <span id="gp-name" class="badge badge-none">not connected</span>
-      <span>Active arm:</span>
-      <span id="side-badge" class="badge badge-left">LEFT</span>
-      <span>Speed:</span>
-      <span id="speed-badge" style="color:#e6edf3;font-weight:600">2.0</span>
+    <div class="card-title">
+      Buttons
+      <button class="reset-btn" onclick="resetBindings()">Reset defaults</button>
     </div>
+
+    <!-- Arm speed -->
+    <div class="speed-row">
+      <label>Arm speed</label>
+      <input type="range" min="0.2" max="10" step="0.1" id="asp-range"
+        oninput="document.getElementById('asp-val').textContent=parseFloat(this.value).toFixed(1);setArmSpeed(this.value)">
+      <span class="sv" id="asp-val">2.0</span>
+    </div>
+
+    <div id="btn-list"><div class="no-gp">Waiting for PS4…</div></div>
   </div>
 
-  <!-- PS4 SVG diagram -->
+  <!-- AXES -->
   <div class="card">
-    <div id="ps4-wrap">
-    <svg id="ps4" viewBox="0 0 540 240" xmlns="http://www.w3.org/2000/svg">
-      <!-- body -->
-      <path class="ps4-body" d="M90,80 Q60,60 50,120 Q45,180 100,200 L200,210 L220,190
-        L320,190 L340,210 L440,200 Q495,180 490,120 Q480,60 450,80
-        L390,60 Q370,30 330,30 L210,30 Q170,30 150,60 Z"/>
+    <div class="card-title">Axes</div>
 
-      <!-- L grip -->
-      <path class="ps4-body" d="M90,130 Q75,160 80,200 Q90,220 120,215 L160,210 L160,175 Q130,170 115,145 Z"/>
-      <!-- R grip -->
-      <path class="ps4-body" d="M450,130 Q465,160 460,200 Q450,220 420,215 L380,210 L380,175 Q410,170 425,145 Z"/>
-
-      <!-- L2 trigger -->
-      <rect id="btn-l2" class="ps4-trigger" x="95" y="35" width="55" height="22" rx="6"/>
-      <text x="122" y="51" fill="#8b949e" font-size="11" text-anchor="middle">L2</text>
-      <!-- R2 trigger -->
-      <rect id="btn-r2" class="ps4-trigger" x="390" y="35" width="55" height="22" rx="6"/>
-      <text x="417" y="51" fill="#8b949e" font-size="11" text-anchor="middle">R2</text>
-
-      <!-- L1 -->
-      <rect id="btn-l1" class="ps4-trigger" x="95" y="62" width="55" height="18" rx="5"/>
-      <text x="122" y="75" fill="#8b949e" font-size="11" text-anchor="middle">L1</text>
-      <!-- R1 -->
-      <rect id="btn-r1" class="ps4-trigger" x="390" y="62" width="55" height="18" rx="5"/>
-      <text x="417" y="75" fill="#8b949e" font-size="11" text-anchor="middle">R1</text>
-
-      <!-- Left stick -->
-      <circle class="ps4-axis-ring" cx="165" cy="155" r="30"/>
-      <circle id="lstick" class="ps4-stick-dot" cx="165" cy="155" r="10" fill="#2d3748"/>
-      <text x="165" y="195" fill="#6e7681" font-size="10" text-anchor="middle">L stick</text>
-      <text x="165" y="206" fill="#58a6ff" font-size="9" text-anchor="middle">pan / lift</text>
-
-      <!-- Right stick -->
-      <circle class="ps4-axis-ring" cx="310" cy="155" r="30"/>
-      <circle id="rstick" class="ps4-stick-dot" cx="310" cy="155" r="10" fill="#2d3748"/>
-      <text x="310" y="195" fill="#6e7681" font-size="10" text-anchor="middle">R stick</text>
-      <text x="310" y="206" fill="#58a6ff" font-size="9" text-anchor="middle">elbow / wrist</text>
-
-      <!-- D-pad (left) -->
-      <rect x="200" y="130" width="14" height="14" rx="2" fill="#252d3d"/>
-      <rect x="186" y="144" width="14" height="14" rx="2" fill="#252d3d"/>
-      <rect x="200" y="144" width="14" height="14" rx="2" fill="#21262d"/>
-      <rect x="214" y="144" width="14" height="14" rx="2" fill="#252d3d"/>
-      <rect x="200" y="158" width="14" height="14" rx="2" fill="#252d3d"/>
-
-      <!-- Face buttons -->
-      <!-- Triangle -->
-      <circle id="btn-3" class="ps4-btn" cx="360" cy="110" r="12" fill="#1a3028"/>
-      <text x="360" y="115" fill="#3fb950" font-size="11" text-anchor="middle">▲</text>
-      <!-- Circle -->
-      <circle id="btn-1" class="ps4-btn" cx="376" cy="128" r="12" fill="#2d1a1a"/>
-      <text x="376" y="133" fill="#f85149" font-size="13" text-anchor="middle">●</text>
-      <!-- Cross -->
-      <circle id="btn-0" class="ps4-btn" cx="360" cy="146" r="12" fill="#1a2640"/>
-      <text x="360" y="151" fill="#58a6ff" font-size="13" text-anchor="middle">✕</text>
-      <!-- Square -->
-      <circle id="btn-2" class="ps4-btn" cx="344" cy="128" r="12" fill="#2d1a40"/>
-      <text x="344" y="133" fill="#bc8cff" font-size="13" text-anchor="middle">■</text>
-
-      <!-- Share/Options -->
-      <rect id="btn-8" class="ps4-btn" x="234" y="96" width="24" height="14" rx="3" fill="#252d3d"/>
-      <text x="246" y="107" fill="#6e7681" font-size="9" text-anchor="middle">Share</text>
-      <rect id="btn-9" class="ps4-btn" x="282" y="96" width="24" height="14" rx="3" fill="#252d3d"/>
-      <text x="294" y="107" fill="#6e7681" font-size="9" text-anchor="middle">Opt</text>
-
-      <!-- Touchpad -->
-      <rect x="220" y="85" width="100" height="58" rx="6" fill="#1c2128" stroke="#30363d" stroke-width="1"/>
-      <text x="270" y="118" fill="#6e7681" font-size="10" text-anchor="middle">TOUCHPAD</text>
-
-      <!-- Wrist roll label between sticks -->
-      <text x="238" y="165" fill="#8b949e" font-size="9" text-anchor="middle">L2/R2 →</text>
-      <text x="238" y="175" fill="#58a6ff" font-size="9" text-anchor="middle">wrist_roll</text>
-    </svg>
+    <!-- L2 / R2 axis indices -->
+    <div class="trig-row">
+      <label>L2 axis#</label>
+      <input type="number" min="0" max="15" id="l2-idx" value="4"
+        onchange="setTrigIdx('l2', this.value)">
+      <label style="margin-left:8px">R2 axis#</label>
+      <input type="number" min="0" max="15" id="r2-idx" value="5"
+        onchange="setTrigIdx('r2', this.value)">
+      <span style="font-size:10px;color:#4a6080;margin-left:6px">wrist_roll</span>
     </div>
 
-    <!-- Trigger bars -->
-    <div class="trigger-wrap">
-      <div class="trigger-item">
-        <div class="trigger-bar-bg"><div id="l2-fill" class="trigger-bar-fill" style="height:0%"></div></div>
-        <div style="font-size:11px;color:#58a6ff">L2<br>wrist↺</div>
-      </div>
-      <div class="trigger-item">
-        <div style="text-align:center;font-size:11px;color:#6e7681;padding-top:8px">
-          <div>L1 = gripper close</div>
-          <div style="margin-top:4px">R1 = gripper open</div>
-          <div style="margin-top:4px;color:#8b949e">✕ = cycle arm</div>
-          <div style="margin-top:4px;color:#bc8cff">■ = left arm</div>
-          <div style="margin-top:4px;color:#3fb950">▲ = right arm</div>
-        </div>
-      </div>
-      <div class="trigger-item">
-        <div class="trigger-bar-bg"><div id="r2-fill" class="trigger-bar-fill" style="height:0%"></div></div>
-        <div style="font-size:11px;color:#58a6ff">R2<br>wrist↻</div>
-      </div>
-    </div>
+    <div id="axis-list"><div class="no-gp">Waiting for PS4…</div></div>
   </div>
-
-  <!-- Live axis bars -->
-  <div class="card">
-    <h3>Live Axes</h3>
-    <div id="axis-bars"></div>
-  </div>
-</div>
-
-<!-- RIGHT: Settings -->
-<div class="right">
-  <!-- Arm selector -->
-  <div class="card">
-    <h3>Active Arm</h3>
-    <div class="side-btns" style="margin-bottom:12px">
-      <button class="side-btn" id="sb-left"  onclick="setSide('left')">Left</button>
-      <button class="side-btn" id="sb-right" onclick="setSide('right')">Right</button>
-      <button class="side-btn" id="sb-both"  onclick="setSide('both')">Both</button>
-    </div>
-    <div style="color:#6e7681;font-size:12px">✕ on PS4 cycles left → right → both</div>
-  </div>
-
-  <!-- Speed -->
-  <div class="card">
-    <h3>Arm Speed</h3>
-    <div class="row">
-      <label>Speed (deg/frame)</label>
-      <input type="range" id="asp-range" min="0.2" max="10" step="0.1" value="2.0" oninput="updateSpeed(this.value)">
-      <span id="asp-val">2.0</span>
-    </div>
-  </div>
-
-  <!-- Device index -->
-  <div class="card">
-    <h3>Gamepad Device</h3>
-    <div class="row">
-      <label>Device index</label>
-      <input type="number" id="dev-idx" min="0" max="8" value="1">
-    </div>
-    <div style="color:#6e7681;font-size:12px;margin-top:6px">
-      0 = first connected gamepad (RadioMaster)<br>
-      1 = second connected gamepad (PS4) ← default
-    </div>
-  </div>
-
-  <!-- Axis mapping -->
-  <div class="card" style="flex:1;overflow-y:auto">
-    <h3>Axis → Joint Mapping</h3>
-    <table class="map-table">
-      <thead><tr><th>Axis</th><th>Joint</th><th>Invert</th><th>Deadzone</th></tr></thead>
-      <tbody id="axis-map-body"></tbody>
-    </table>
-    <div style="margin-top:10px;color:#6e7681;font-size:12px">
-      L2/R2 (axes 4/5) → wrist_roll differential (fixed)
-    </div>
-  </div>
-
-  <!-- Button mapping -->
-  <div class="card">
-    <h3>Button Actions</h3>
-    <table class="map-table">
-      <thead><tr><th>Btn</th><th>Action</th></tr></thead>
-      <tbody id="btn-map-body"></tbody>
-    </table>
-  </div>
-
-  <!-- Save / Reset -->
-  <div style="display:flex;gap:8px">
-    <button class="btn btn-save" onclick="saveBindings()">Save</button>
-    <button class="btn btn-danger" onclick="resetBindings()">Reset defaults</button>
-  </div>
-</div>
 </div>
 
 <script>
-let bindings = {};
-const JOINTS = ["shoulder_pan","shoulder_lift","elbow_flex","wrist_flex","wrist_roll","gripper"];
-const BTN_NAMES = {0:"Cross(✕)",1:"Circle(●)",2:"Square(■)",3:"Triangle(▲)",4:"L1",5:"R1",
-  6:"L2 digital",7:"R2 digital",8:"Share",9:"Options",10:"PS",11:"L3",12:"R3"};
-const ACTIONS = ["none","gripper_close","gripper_open","switch_left","switch_right",
-  "switch_both","switch_cycle","speed_up","speed_down","home_arms"];
+const BTN_ACTIONS = ['none','gripper_close','gripper_open','switch_left','switch_right',
+  'switch_cycle','switch_both','speed_up','speed_down','home_arms'];
+const AXIS_JOINTS = ['none','shoulder_pan','shoulder_lift','elbow_flex','wrist_flex','wrist_roll','gripper'];
 
-async function load() {
-  bindings = await (await fetch('/arm_bindings')).json();
-  renderAxisMap();
-  renderBtnMap();
-  document.getElementById('dev-idx').value = bindings.device_index ?? 1;
+let bindings = {axes:{}, buttons:{}, arm_speed:2.0, trigger_l2:4, trigger_r2:5};
+let liveButtons = {}, liveAxes = {};
+let listening = null;
+let prevBtns = {};
+
+async function loadBindings(){
+  bindings = await(await fetch('/arm_bindings')).json();
   document.getElementById('asp-range').value = bindings.arm_speed ?? 2.0;
   document.getElementById('asp-val').textContent = (bindings.arm_speed ?? 2.0).toFixed(1);
+  document.getElementById('l2-idx').value = bindings.trigger_l2 ?? 4;
+  document.getElementById('r2-idx').value = bindings.trigger_r2 ?? 5;
 }
-
-function renderAxisMap() {
-  const axes = bindings.axes || {};
-  const body = document.getElementById('axis-map-body');
-  body.innerHTML = '';
-  for (const [ai, cfg] of Object.entries(axes)) {
-    const tr = document.createElement('tr'); tr.className='map-row';
-    tr.innerHTML = `
-      <td>${axisLabel(ai)}</td>
-      <td>
-        <select onchange="axes_set('${ai}','joint',this.value)" style="background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:4px;padding:2px 4px">
-          ${JOINTS.map(j=>`<option value="${j}"${cfg.joint===j?' selected':''}>${j}</option>`).join('')}
-        </select>
-      </td>
-      <td><input type="checkbox" ${cfg.invert?'checked':''} onchange="axes_set('${ai}','invert',this.checked)"></td>
-      <td><input type="number" min="0" max="0.5" step="0.01" value="${cfg.deadzone||0.12}" style="width:55px;background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:4px;padding:2px 4px" onchange="axes_set('${ai}','deadzone',parseFloat(this.value))"></td>
-    `;
-    body.appendChild(tr);
-  }
-}
-
-function renderBtnMap() {
-  const btns = bindings.buttons || {};
-  const body = document.getElementById('btn-map-body');
-  body.innerHTML = '';
-  for (const [bi, cfg] of Object.entries(btns)) {
-    const tr = document.createElement('tr'); tr.className='map-row';
-    tr.innerHTML = `
-      <td>${BTN_NAMES[bi] || 'Btn '+bi}</td>
-      <td>
-        <select onchange="btn_set('${bi}','action',this.value)" style="background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:4px;padding:2px 4px">
-          ${ACTIONS.map(a=>`<option value="${a}"${cfg.action===a?' selected':''}>${a}</option>`).join('')}
-        </select>
-      </td>
-    `;
-    body.appendChild(tr);
-  }
-}
-
-function axisLabel(ai) {
-  const names = {0:"LX",1:"LY",2:"RX",3:"RY",4:"L2",5:"R2"};
-  return `${names[ai]||'ax'+ai} (${ai})`;
-}
-
-function axes_set(ai,k,v) { if(!bindings.axes) bindings.axes={}; if(!bindings.axes[ai]) bindings.axes[ai]={}; bindings.axes[ai][k]=v; }
-function btn_set(bi,k,v)  { if(!bindings.buttons) bindings.buttons={}; if(!bindings.buttons[bi]) bindings.buttons[bi]={}; bindings.buttons[bi][k]=v; }
-
-function updateSpeed(v) {
-  document.getElementById('asp-val').textContent = parseFloat(v).toFixed(1);
-  bindings.arm_speed = parseFloat(v);
-}
-
-async function setSide(s) {
-  await fetch('/arm/side',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({side:s})});
-}
-
-async function saveBindings() {
-  bindings.device_index = parseInt(document.getElementById('dev-idx').value);
-  bindings.arm_speed    = parseFloat(document.getElementById('asp-range').value);
+async function saveBindings(){
   await fetch('/arm_bindings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(bindings)});
-  alert('Saved');
+}
+async function resetBindings(){
+  await fetch('/arm_bindings/reset',{method:'POST'});
+  await loadBindings();
+  renderButtons(); renderAxes();
+}
+function setArmSpeed(v){
+  bindings.arm_speed = parseFloat(v);
+  saveBindings();
+}
+function setTrigIdx(which, v){
+  bindings[which==='l2'?'trigger_l2':'trigger_r2'] = parseInt(v);
+  saveBindings();
 }
 
-async function resetBindings() {
-  if (!confirm('Reset to PS4 defaults?')) return;
-  bindings = await (await fetch('/arm_bindings/reset',{method:'POST'})).json();
-  renderAxisMap(); renderBtnMap();
-  document.getElementById('dev-idx').value = bindings.device_index;
-  document.getElementById('asp-range').value = bindings.arm_speed;
-  document.getElementById('asp-val').textContent = bindings.arm_speed.toFixed(1);
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderButtons(){
+  const el = document.getElementById('btn-list');
+  const keys = Object.keys(liveButtons).sort((a,b)=>+a-+b);
+  if(!keys.length){el.innerHTML='<div class="no-gp">No buttons detected</div>';return;}
+  el.innerHTML = keys.map(i=>{
+    const cfg = bindings.buttons?.[i] || {action:'none'};
+    const val = liveButtons[i] ? 1 : 0;
+    const opts = BTN_ACTIONS.map(a=>`<option value="${a}"${a===cfg.action?' selected':''}>${a}</option>`).join('');
+    return `<div class="irow${val?' active':''}" id="abrow_${i}">
+      <span class="idx-badge">B${i}</span>
+      <span class="btn-dot${val?' on':''}" id="abdot_${i}"></span>
+      <select class="action-sel" onchange="setBtn('${i}',this.value)">${opts}</select>
+      <button class="bind-btn" id="abbind_${i}" onclick="startBind('${i}')">Bind</button>
+    </div>`;
+  }).join('');
 }
 
-// ── Live polling ────────────────────────────────────────────────────────────
-function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
+function renderAxes(){
+  const el = document.getElementById('axis-list');
+  const keys = Object.keys(liveAxes).sort((a,b)=>+a-+b);
+  if(!keys.length){el.innerHTML='<div class="no-gp">No axes detected</div>';return;}
+  el.innerHTML = keys.map(i=>{
+    const cfg = bindings.axes?.[i] || {joint:'none',invert:false,deadzone:0.18};
+    const v = liveAxes[i] ?? 0;
+    const pct = Math.abs(v)*50;
+    const opts = AXIS_JOINTS.map(a=>`<option value="${a}"${a===(cfg.joint||'none')?' selected':''}>${a}</option>`).join('');
+    return `<div class="irow${Math.abs(v)>.05?' active':''}" id="aarow_${i}">
+      <span class="idx-badge">A${i}</span>
+      <div class="bar"><div class="bar-center"></div>
+        <div id="aabar_${i}" class="bar-fill${v<0?' neg':''}" style="width:${pct}%"></div></div>
+      <span class="val-txt" id="aaval_${i}">${v.toFixed(2)}</span>
+      <select class="action-sel" onchange="setAxis('${i}',this.value)">${opts}</select>
+      <label style="font-size:11px;color:#6a8aaa;display:flex;align-items:center;gap:4px;cursor:pointer">
+        <input type="checkbox" ${cfg.invert?'checked':''} onchange="setAxisInvert('${i}',this.checked)">inv</label>
+    </div>`;
+  }).join('');
+}
 
-function poll() {
-  fetch('/status').then(r=>r.json()).then(s=>{
-    // gamepad name + side badge
-    const gn = document.getElementById('gp-name');
-    gn.textContent = s.arm_gamepad || 'not connected';
-    gn.className = s.arm_gamepad && s.arm_gamepad!=='none' ? 'badge badge-ok' : 'badge badge-none';
+// ── Actions ───────────────────────────────────────────────────────────────────
+function setBtn(idx, action){
+  if(!bindings.buttons) bindings.buttons={};
+  if(!bindings.buttons[idx]) bindings.buttons[idx]={action:'none'};
+  bindings.buttons[idx].action = action;
+  saveBindings();
+}
+function setAxis(idx, joint){
+  if(!bindings.axes) bindings.axes={};
+  if(!bindings.axes[idx]) bindings.axes[idx]={joint:'none',invert:false,deadzone:0.18,scale:1.0};
+  bindings.axes[idx].joint = joint;
+  saveBindings();
+}
+function setAxisInvert(idx, val){
+  if(!bindings.axes) bindings.axes={};
+  if(!bindings.axes[idx]) bindings.axes[idx]={joint:'none',invert:false,deadzone:0.18,scale:1.0};
+  bindings.axes[idx].invert = val;
+  saveBindings();
+}
 
-    const sb = document.getElementById('side-badge');
-    const side = s.arm_control_side || 'left';
-    sb.textContent = side.toUpperCase();
-    sb.className = 'badge ' + (side==='left'?'badge-left':side==='right'?'badge-right':'badge-both');
-
-    document.getElementById('speed-badge').textContent = (s.arm_speed||2.0).toFixed(1);
-
-    // Side buttons active state
-    ['left','right','both'].forEach(x=>{
-      const el = document.getElementById('sb-'+x);
-      el.className = 'side-btn' + (side===x ? (x==='left'?' active':x==='right'?' active-r':' active-b') : '');
-    });
-
-    // Stick dots
-    const axes = s.arm_gamepad_axes || {};
-    const lx=parseFloat(axes[0]||0), ly=parseFloat(axes[1]||0);
-    const rx=parseFloat(axes[2]||0), ry=parseFloat(axes[3]||0);
-    document.getElementById('lstick').setAttribute('transform',`translate(${lx*22},${ly*22})`);
-    document.getElementById('rstick').setAttribute('transform',`translate(${rx*22},${ry*22})`);
-
-    // L2/R2 triggers
-    const l2raw = parseFloat(axes[4]||-1); const r2raw = parseFloat(axes[5]||-1);
-    const l2pct = Math.max(0,(l2raw+1)/2*100); const r2pct = Math.max(0,(r2raw+1)/2*100);
-    document.getElementById('l2-fill').style.height = l2pct+'%';
-    document.getElementById('r2-fill').style.height = r2pct+'%';
-
-    // Button highlights
-    const btns = s.arm_gamepad_buttons || {};
-    const btnMap = {0:'btn-0',1:'btn-1',2:'btn-2',3:'btn-3',4:'btn-l1',5:'btn-r1',6:'btn-l2',7:'btn-r2',8:'btn-8',9:'btn-9'};
-    Object.entries(btnMap).forEach(([i,id])=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      el.style.filter = btns[i] ? 'brightness(2.0) saturate(1.5)' : '';
-    });
-    // L2/R2 trigger rect highlight
-    document.getElementById('btn-l2').style.fill = l2pct>5 ? '#1a3050':'';
-    document.getElementById('btn-r2').style.fill = r2pct>5 ? '#1a3050':'';
-
-    // Axis bars
-    const barDiv = document.getElementById('axis-bars');
-    const axNames = {0:'LX → shoulder_pan',1:'LY → shoulder_lift',2:'RX → elbow_flex',3:'RY → wrist_flex',4:'L2 → wrist_roll−',5:'R2 → wrist_roll+'};
-    if(barDiv.children.length===0){
-      for(let i=0;i<6;i++){
-        barDiv.innerHTML+=`<div class="axis-bar-wrap">
-          <span class="axis-name">ax${i}</span>
-          <div class="axis-bar-bg"><div id="abar-${i}" class="axis-bar-fill"></div></div>
-          <span id="aval-${i}" style="font-size:11px;color:#6e7681;min-width:38px"></span>
-          <span style="font-size:11px;color:#8b949e">${axNames[i]||''}</span>
-        </div>`;
-      }
+// ── Bind by press ─────────────────────────────────────────────────────────────
+function startBind(idx){
+  if(listening){ stopListen(); return; }
+  listening = {idx};
+  const btn = document.getElementById(`abbind_${idx}`);
+  if(btn){ btn.textContent='Press…'; btn.classList.add('listening'); }
+  // highlight row
+  const row = document.getElementById(`abrow_${idx}`);
+  if(row) row.classList.add('listening');
+}
+function stopListen(){
+  if(!listening) return;
+  const btn = document.getElementById(`abbind_${listening.idx}`);
+  if(btn){ btn.textContent='Bind'; btn.classList.remove('listening'); }
+  const row = document.getElementById(`abrow_${listening.idx}`);
+  if(row) row.classList.remove('listening');
+  listening = null;
+}
+function detectBind(btns){
+  if(!listening) return;
+  for(const [i, v] of Object.entries(btns)){
+    if(v && !prevBtns[i]){
+      // Move binding from source to pressed button
+      const srcCfg = bindings.buttons?.[listening.idx] || {action:'none'};
+      if(!bindings.buttons) bindings.buttons={};
+      bindings.buttons[String(i)] = {...srcCfg};
+      bindings.buttons[String(listening.idx)] = {action:'none'};
+      saveBindings();
+      stopListen();
+      renderButtons();
+      break;
     }
-    for(let i=0;i<6;i++){
-      const v=parseFloat(axes[i]||0);
-      const el=document.getElementById(`abar-${i}`);
-      const vl=document.getElementById(`aval-${i}`);
-      if(!el) continue;
-      if(i>=4){
-        // triggers 0..1
-        const pct=Math.max(0,(v+1)/2*100);
-        el.style.left='0%'; el.style.width=pct+'%'; el.style.background='#58a6ff';
-      } else {
-        // centered -1..+1
-        const pct=Math.abs(v)*50; const pos=v<0?50-pct:50;
-        el.style.left=pos+'%'; el.style.width=pct+'%';
-        el.style.background=Math.abs(v)>0.12?'#58a6ff':'#21262d';
-      }
-      if(vl) vl.textContent=v.toFixed(3);
-    }
-  }).catch(()=>{});
+  }
+  prevBtns = {...btns};
 }
 
-load();
-setInterval(poll, 80);
+// ── Poll ──────────────────────────────────────────────────────────────────────
+let _rendered = false;
+setInterval(async()=>{
+  try{
+    const d = await(await fetch('/status')).json();
+    const dot = document.getElementById('live-dot');
+    const agp = d.arm_gamepad || 'none';
+    const connected = agp !== 'none';
+    dot.className = 'live-dot' + (connected?'':' off');
+    document.getElementById('gp-name').textContent = connected ? agp : 'PS4 not connected';
+
+    const btns = d.arm_gamepad_buttons || {};
+    const axes = d.arm_gamepad_axes || {};
+
+    if(listening) detectBind(btns);
+
+    const needRB = Object.keys(btns).length !== Object.keys(liveButtons).length;
+    const needRA = Object.keys(axes).length !== Object.keys(liveAxes).length;
+    liveButtons = btns; liveAxes = axes;
+
+    if(needRB || !_rendered){ renderButtons(); _rendered=true; }
+    if(needRA || !_rendered) renderAxes();
+
+    // Live update buttons
+    for(const [i, v] of Object.entries(btns)){
+      const dot = document.getElementById(`abdot_${i}`);
+      const row = document.getElementById(`abrow_${i}`);
+      if(dot) dot.className = 'btn-dot'+(v?' on':'');
+      if(row && !row.classList.contains('listening')) row.className='irow'+(v?' active':'');
+    }
+    // Live update axes
+    for(const [i, v] of Object.entries(axes)){
+      const bar = document.getElementById(`aabar_${i}`);
+      const val = document.getElementById(`aaval_${i}`);
+      const row = document.getElementById(`aarow_${i}`);
+      const pct = Math.abs(+v)*50;
+      if(bar){ bar.style.width=pct+'%'; bar.className='bar-fill'+(+v<0?' neg':''); }
+      if(val) val.textContent=(+v).toFixed(2);
+      if(row) row.className='irow'+(Math.abs(+v)>.05?' active':'');
+    }
+  }catch(e){}
+}, 80);
+
+loadBindings();
 </script>
 </body>
 </html>
