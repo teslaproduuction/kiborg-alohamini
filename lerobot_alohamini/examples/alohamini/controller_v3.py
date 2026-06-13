@@ -478,7 +478,7 @@ def gamepad_loop():
                         state["gamepad_axes"]=axes; state["gamepad_buttons"]=btns
                         sp=state["base_speed"]; rs=state["rot_speed"]
                         lh=state["lift_height"]; sel=state["selected_joint"]
-                    nx=ny=nth=0.0; nlh=lh
+                    nx=ny=nth=0.0; nlh=lh; trig_l_val=0.0; trig_r_val=0.0
                     for ai,cfg in bindings.get("axes",{}).items():
                         raw=float(axes.get(ai,0)); v=apply_dz(raw,cfg.get("deadzone",.1))*cfg.get("scale",1)
                         if cfg.get("invert"): v=-v
@@ -490,6 +490,8 @@ def gamepad_loop():
                         elif act in("arm_left","arm_right") and abs(v)>.05:
                             j=ARM_JOINTS[sel]; side="arm_left" if act=="arm_left" else "arm_right"
                             with lock: state[side][j]=max(-100,min(100,state[side][j]+v*2))
+                            if act=="arm_left": trig_l_val=max(trig_l_val, abs(v))
+                            else:               trig_r_val=max(trig_r_val, abs(v))
                     with lock: state["base_cmd"]={"x":nx,"y":ny,"theta":nth}; state["lift_height"]=nlh
                     for bi,cfg in bindings.get("buttons",{}).items():
                         cur=btns.get(bi,False); prev=last_btns.get(bi,False)
@@ -516,17 +518,7 @@ def gamepad_loop():
 
                     # Both triggers pressed → ARM (rising edge only)
                     # If PS4 not connected: arm base only; if PS4 connected: full arm
-                    trig_l = any(
-                        abs(apply_dz(float(axes.get(ai,0)), cfg.get("deadzone",.1))) > 0.5
-                        for ai,cfg in bindings.get("axes",{}).items()
-                        if cfg.get("action") == "arm_left"
-                    )
-                    trig_r = any(
-                        abs(apply_dz(float(axes.get(ai,0)), cfg.get("deadzone",.1))) > 0.5
-                        for ai,cfg in bindings.get("axes",{}).items()
-                        if cfg.get("action") == "arm_right"
-                    )
-                    both_now = trig_l and trig_r
+                    both_now = trig_l_val > 0.5 and trig_r_val > 0.5
                     if both_now and not last_both_triggers:
                         with lock: disarmed = state["robot_disarmed"]
                         if disarmed:
