@@ -522,14 +522,21 @@ def gamepad_loop():
                     # If PS4 not connected: arm base only; if PS4 connected: full arm
                     both_now = trig_l_val > 0.6 and trig_r_val > 0.6  # >0.6 = ~80% press
                     if both_now and not last_both_triggers:
+                        # Rising edge: both pressed → ARM
                         with lock: disarmed = state["robot_disarmed"]
                         if disarmed:
                             if joy_arm:
-                                print("[Triggers] both pressed + PS4 connected → FULL ARM")
+                                print("[Triggers] both pressed + PS4 → FULL ARM")
                                 threading.Thread(target=_do_arm, daemon=True).start()
                             else:
                                 print("[Triggers] both pressed, no PS4 → BASE ONLY ARM")
                                 threading.Thread(target=_do_arm_base_only, daemon=True).start()
+                    elif not both_now and last_both_triggers:
+                        # Falling edge: triggers released → DISARM
+                        with lock: disarmed = state["robot_disarmed"]
+                        if not disarmed:
+                            print("[Triggers] released → DISARM")
+                            threading.Thread(target=_do_disarm, daemon=True).start()
                     last_both_triggers = both_now
 
                 # ── Arm gamepad (PS4) ─────────────────────────────────────
