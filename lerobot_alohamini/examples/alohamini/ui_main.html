@@ -124,6 +124,7 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
            transition:all .2s;display:none" title="Click to ARM/DISARM robot">⚡ DISARMED</span>
   <a class="nav" href="/arm_settings" style="margin-left:8px" title="PS4 / DualShock bindings">🕹️ PS4 Arms</a>
   <a class="nav" href="/settings" style="margin-left:auto" title="RadioMaster bindings">🎮 RadioMaster</a>
+  <span class="nav" onclick="piShutdown()" style="cursor:pointer;color:#f08080;margin-left:8px" title="Shutdown Raspberry Pi">⏻ Pi</span>
 </div>
 
 <div class="tabs">
@@ -432,6 +433,10 @@ function _updateArmStatusNav(disarmed){
   }
 }
 
+async function piShutdown(){
+  if(!confirm('Выключить Raspberry Pi?')) return;
+  await fetch('/pi/shutdown',{method:'POST'});
+}
 async function navToggleArm(){
   if(_disarmed){ await armRearm(); } else { await armDisarm(); }
 }

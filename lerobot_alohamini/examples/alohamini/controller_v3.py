@@ -890,6 +890,20 @@ def _do_arm_base_only():
         except: pass
         time.sleep(0.03)
 
+@app.route('/pi/shutdown', methods=['POST'])
+def pi_shutdown():
+    import subprocess
+    try:
+        subprocess.Popen([
+            "plink", "-ssh", "-pw", "raspberry",
+            f"pi@{REMOTE_IP}",
+            "-hostkey", "ssh-ed25519 255 SHA256:379wK41H1NB4mUdnfa9RPq9gvqulKc2rI1eqm4B/QF0",
+            "-batch", "sudo shutdown -h now"
+        ])
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 500
+    return jsonify(ok=True)
+
 @app.route('/arm/disarm', methods=['POST'])
 def arm_disarm():
     threading.Thread(target=_do_disarm, daemon=True).start()
