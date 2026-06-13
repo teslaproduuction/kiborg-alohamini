@@ -76,7 +76,9 @@ canvas.eye{border-radius:50%;display:block}
 
 <div id="bottombar">
   <div class="side-stat">
-    <span>CPU <b id="load">—</b></span>
+    <span>CPU <b id="load">—</b> <span id="cpu-bar" style="display:inline-block;width:40px;height:5px;background:#0a1520;border-radius:3px;vertical-align:middle;margin-left:3px;overflow:hidden"><span id="cpu-bar-fill" style="display:block;height:100%;width:0%;background:#4a9eff;border-radius:3px;transition:width .6s"></span></span></span>
+    <span>RAM <b id="ram-v">—</b> <span id="ram-bar" style="display:inline-block;width:40px;height:5px;background:#0a1520;border-radius:3px;vertical-align:middle;margin-left:3px;overflow:hidden"><span id="ram-bar-fill" style="display:block;height:100%;width:0%;background:#4a9eff;border-radius:3px;transition:width .6s"></span></span></span>
+    <span>DISK <b id="disk-v">—</b></span>
     <span>ZMQ <b id="zmq">—</b></span>
   </div>
   <div id="estop" ontouchstart="doEstop(event)" onclick="doEstop(event)">
@@ -86,6 +88,7 @@ canvas.eye{border-radius:50%;display:block}
   <div class="side-stat" style="text-align:right">
     <span><b id="tbig">--:--</b></span>
     <span><b id="date" style="font-size:11px;color:#304060">—</b></span>
+    <span style="font-size:10px;color:#203050">SD <b id="disk-v2">—</b></span>
   </div>
 </div>
 
@@ -478,15 +481,38 @@ function tick(){
 }
 tick(); setInterval(tick,10000);
 
+function _barColor(pct){
+  if(pct>=85) return '#f05050';
+  if(pct>=65) return '#e8a020';
+  return '#4a9eff';
+}
 setInterval(()=>{
   fetch('/status').then(r=>r.json()).then(s=>{
     document.getElementById('nip').textContent=s.ip??'—';
-    document.getElementById('temp').textContent=s.temp??'—';
+    document.getElementById('temp').textContent=s.temp!=null?s.temp+'°':'—';
     document.getElementById('upt').textContent=s.uptime??'—';
-    document.getElementById('load').textContent=s.load?.toFixed(2)??'—';
+    // CPU
+    const cpu=s.cpu??s.load??0;
+    const loadEl=document.getElementById('load');
+    if(loadEl)loadEl.textContent=s.cpu!=null?s.cpu.toFixed(0)+'%':s.load?.toFixed(2)??'—';
+    const cbf=document.getElementById('cpu-bar-fill');
+    if(cbf){cbf.style.width=Math.min(100,cpu)+'%';cbf.style.background=_barColor(cpu);}
+    // RAM
+    const ram=s.ram??0;
+    const rv=document.getElementById('ram-v');
+    if(rv)rv.textContent=s.ram!=null?s.ram.toFixed(0)+'%':'—';
+    const rbf=document.getElementById('ram-bar-fill');
+    if(rbf){rbf.style.width=Math.min(100,ram)+'%';rbf.style.background=_barColor(ram);}
+    // Disk
+    const dv=document.getElementById('disk-v');
+    const dv2=document.getElementById('disk-v2');
+    const dstr=s.disk!=null?s.disk.toFixed(0)+'%':'—';
+    if(dv)dv.textContent=dstr;
+    if(dv2)dv2.textContent=dstr;
+    // ZMQ
     document.getElementById('zmq').textContent=s.zmq?'ON':'—';
-    const d=document.getElementById('ndot');
-    d.className='dot'+(s.zmq?' ok':'');
+    const nd=document.getElementById('ndot');
+    nd.className='dot'+(s.zmq?' ok':'');
     if(s.estop&&!estopFired) setMood('estop');
   }).catch(()=>{});
 },3000);

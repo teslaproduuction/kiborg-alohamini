@@ -80,6 +80,37 @@ def _load():
         return os.getloadavg()[0]
     except: return 0.0
 
+def _cpu_pct():
+    try:
+        import psutil
+        return psutil.cpu_percent(interval=None)
+    except: return None
+
+def _ram_pct():
+    try:
+        import psutil
+        return psutil.virtual_memory().percent
+    except:
+        try:
+            with open("/proc/meminfo") as f:
+                lines = {l.split(":")[0]: int(l.split()[1]) for l in f if ":" in l}
+            total = lines.get("MemTotal", 1)
+            avail = lines.get("MemAvailable", total)
+            return round((1 - avail / total) * 100, 1)
+        except: return None
+
+def _disk_pct():
+    try:
+        import psutil
+        return psutil.disk_usage("/").percent
+    except:
+        try:
+            st = os.statvfs("/")
+            used = (st.f_blocks - st.f_bfree) * st.f_frsize
+            total = st.f_blocks * st.f_frsize
+            return round(used / total * 100, 1)
+        except: return None
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
@@ -100,11 +131,17 @@ def estop_release():
 
 @app.route("/status")
 def status():
+    cpu = _cpu_pct()
+    ram = _ram_pct()
+    disk = _disk_pct()
     return jsonify(
         ip=_local_ip(),
         temp=_cpu_temp(),
         uptime=_uptime(),
         load=round(_load(), 2),
+        cpu=cpu,
+        ram=ram,
+        disk=disk,
         zmq=_zmq_ok,
         estop=_estop_active.is_set(),
         hostname=socket.gethostname(),
