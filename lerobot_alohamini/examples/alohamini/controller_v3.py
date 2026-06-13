@@ -57,7 +57,8 @@ state = {
     "arm_control_side": "left",   # "left" | "right" | "both"
     "robot_disarmed":   True,   # drives __disarm_robot command to Pi
     "arms_armed":       False,  # only True when arm motors explicitly armed
-    "arm_hold_until":   0.0,    # timestamp: suppress arm cmds after arming
+    "arm_hold_until":   0.0,    # suppress arm cmds until this time
+    "arm_sync_until":   0.0,    # allow obs sync even when armed (initial position read)
     "connected":        False,
     # Cameras: name → base64 jpeg
     "cameras":        {},
@@ -241,10 +242,10 @@ def obs_loop():
             obs = json.loads(obs_sock.recv().decode())
             with lock:
                 state["lift_height"] = obs.get("lift_axis.height_mm", state["lift_height"])
-                # Only sync arm positions from observations when DISARMED.
-                # When ARMED: controller's own state is authoritative (avoids
-                # motor-noise → command → motor feedback loop that causes jitter).
-                if state["robot_disarmed"]:
+                # Sync arm positions when DISARMED, or during the initial sync window
+                # after ARM (arm_sync_until) so real positions are loaded before
+                # any position commands are sent.
+                if state["robot_disarmed"] or time.time() < state["arm_sync_until"]:
                     for j in ARM_JOINTS:
                         v = obs.get(f"arm_left_{j}.pos")
                         if v is not None: state["arm_left"][j] = v
@@ -831,11 +832,13 @@ def _do_disarm():
         time.sleep(0.05)
 
 def _do_arm():
-    """Re-enable torque on whole robot (background-safe)."""
+    """Re-enable torque on whole robot, sync real positions, then move to ready preset."""
+    t = time.time()
     with lock:
         state["robot_disarmed"] = False
         state["arms_armed"] = True
-        state["arm_hold_until"] = time.time() + 0.4
+        state["arm_sync_until"] = t + 0.5   # obs writes real motor positions during this window
+        state["arm_hold_until"] = t + 0.6   # no position commands sent until sync completes
     with lock: lh = state["lift_height"]
     payload = json.dumps({"__arm_robot": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
@@ -844,13 +847,21 @@ def _do_arm():
         try: cmd_sock.send(payload)
         except: pass
         time.sleep(0.03)
+    # Wait for sync window + small buffer, then smooth-move to ready position
+    time.sleep(0.7)
+    with lock:
+        if state["robot_disarmed"] or not state["arms_armed"]:
+            return
+    smooth_move(["left", "right"], ARM_PRESETS["ready"])
 
 def _do_arm_side(side: str):
-    """Arm one arm only: side='left' or 'right'."""
+    """Arm one arm only: side='left' or 'right', sync positions, then move to ready."""
+    t = time.time()
     with lock:
         state["robot_disarmed"] = False
         state["arms_armed"] = True
-        state["arm_hold_until"] = time.time() + 0.4
+        state["arm_sync_until"] = t + 0.5
+        state["arm_hold_until"] = t + 0.6
     with lock: lh = state["lift_height"]
     key = f"__arm_{side}"
     payload = json.dumps({key: True, "x.vel":0,"y.vel":0,"theta.vel":0,
@@ -859,6 +870,11 @@ def _do_arm_side(side: str):
         try: cmd_sock.send(payload)
         except: pass
         time.sleep(0.03)
+    time.sleep(0.7)
+    with lock:
+        if state["robot_disarmed"] or not state["arms_armed"]:
+            return
+    smooth_move([side], ARM_PRESETS["ready"])
 
 def _do_arm_base_only():
     """Arm base+lift only — arms stay disarmed (no arm position commands sent)."""
