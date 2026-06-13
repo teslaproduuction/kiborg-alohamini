@@ -915,7 +915,10 @@ class LeKiwi(Robot):
 
     @check_if_not_connected
     def disconnect(self):
-        self.stop_base()
+        try:
+            self.stop_base()
+        except Exception as e:
+            print(f"[disconnect] stop_base error (serial may be gone): {e}")
         self.left_bus.disconnect(self.config.disable_torque_on_disconnect)
         if self.base_bus:
             self.base_bus.disconnect(self.config.disable_torque_on_disconnect)
