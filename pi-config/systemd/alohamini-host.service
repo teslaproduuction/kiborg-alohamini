@@ -1,0 +1,21 @@
+[Unit]
+Description=AlohaMini Robot Host (lekiwi_host)
+After=network.target systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/lerobot_alohamini
+# Auto-accept calibration via stdin pipe
+ExecStart=/bin/bash -c 'printf "\n" | /home/pi/miniforge3/envs/lerobot/bin/python -m lerobot.robots.alohamini.lekiwi_host --robot_model alohamini1'
+Restart=on-failure
+RestartSec=8
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=alohamini-host
+# Give USB devices time to enumerate after boot
+ExecStartPre=/bin/sleep 6
+
+[Install]
+WantedBy=multi-user.target

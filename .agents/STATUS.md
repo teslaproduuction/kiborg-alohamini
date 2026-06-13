@@ -1,5 +1,5 @@
 # AlohaMini — статус проекта
-_Обновлено: 2026-06-13 (вечер)_
+_Обновлено: 2026-06-13 (ночь)_
 
 ---
 
@@ -82,26 +82,28 @@ _Обновлено: 2026-06-13 (вечер)_
 
 ## ⏳ ПРЕДСТОИТ
 
-### Высокий приоритет
-- [x] ARM по кнопке навбар — работает
-- [x] RadioMaster детектируется корректно (ключевое слово "express lrs")
-- [x] Руки не ездят сами (убрана joint-delta из базового trigger handler)
-- [ ] **Калибровка dead zone PS4** — текущий 0.25 слишком большой, управление резкое и с задержкой. Нужна кнопка в ui_arm_settings + live preview
-- [ ] Кнопка выключения Pi на навбаре — ✅ добавлена (⏻ Pi)
+### Сделано (этот сеанс)
+- [x] PS4 deadzone: per-axis slider + Auto DZ кнопка (3с измерение шума), default 0.25→0.10
+- [x] arm_speed default 0.6→2.5
+- [x] Навбар redesign: Barlow Condensed + JetBrains Mono, янтарный ARMED, status pills
+- [x] Light/dark тема на всех 3 страницах, localStorage
+- [x] ⏻ Pi кнопка в навбаре (kill python → sudo shutdown)
+- [x] systemd сервисы alohamini-host + alohamini-cam (автостарт при ребуте, installed)
+- [x] .bash_profile починен (убран пустой if/fi блок)
+- [x] Бекап малины: `pi-backup/pi_backup_2026-06-13.tar.gz` (135MB)
+- [x] Recording tab: timer, progress bar, Next Episode кнопка, обновлённый список
+- [x] Map/Waypoints: minor/major grid (20cm/1m), scale bar, расстояния между точками, right-click = clear, тема
 
 ### Средний приоритет
-- [ ] .bash_profile — синтаксическая ошибка строка 4 (некритично, убрать `fi`)
-- [ ] Dead zone PS4 — уменьшить default с 0.25 до ~0.10, добавить слайдер deadzone per-axis в ui_arm_settings
-- [ ] arm_speed — default 0.6 медленный, поднять до ~2.0 или больше (есть слайдер в ui_arm_settings)
-- [ ] Shoulder pan левой руки — подобрать правильный home offset чтобы "прямо" = 0
-- [ ] robot_display.py — глаза (сейчас норм?)
-- [ ] Камера front (/dev/video0) — есть в lekiwi_host config на малине, crash если не подключена
+- [ ] Shoulder pan левой руки — физически развёрнута не туда, нужна ручная подстройка
+- [ ] Камера front (/dev/video0) в lekiwi_host config — убедиться что закомментирована (crash если нет)
+- [ ] robot_display.py — проверить глаза после всех изменений
 
 ### Низкий приоритет
-- [ ] Запись датасетов (lerobot record)
+- [ ] Запись датасетов → конвертация в LeRobot формат (convert_recording.py нужно написать)
 - [ ] Обучение (lerobot train / ACT policy)
 - [ ] Инференс (lerobot eval)
-- [ ] Waypoint навигация (2D карта)
+- [ ] Полноценный waypoint router с огибанием препятствий
 
 ---
 
@@ -116,7 +118,9 @@ _Обновлено: 2026-06-13 (вечер)_
 | `pi-config/robot_src/lekiwi_host.py` | Хост на малине |
 | `pi-config/robot_src/lekiwi.py` | Робот-класс, send_action, get_observation |
 | `lerobot_alohamini/examples/alohamini/gamepad_bindings.json` | Бинды RadioMaster |
-| `/tmp/start_all.sh` | Скрипт запуска на малине (стирается при reboot!) |
+| `/home/pi/start_robot.sh` | Постоянный скрипт запуска (не стирается) |
+| `pi-config/systemd/` | systemd сервисы (установлены, автостарт) |
+| `pi-backup/pi_backup_2026-06-13.tar.gz` | Бекап малины 135MB |
 
 ---
 
