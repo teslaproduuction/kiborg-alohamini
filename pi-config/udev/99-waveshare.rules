@@ -1,13 +1,13 @@
 # Waveshare Bus Servo Controllers — stable symlinks by USB port path
 # Regardless of ttyACM number assigned at boot.
 #
-# base (IDs 8-11):  xhci-hcd.1 port 1  → /dev/ttyWS_base
-# right arm (1-6):  xhci-hcd.1 port 2  → /dev/ttyWS_right
-# left arm (1-6):   xhci-hcd.0 port 2  → /dev/ttyWS_left
+# base (IDs 8-11):  xhci-hcd.1 port 1      → /dev/ttyWS_base
+# right arm (1-6):  xhci-hcd.0 port 1.4.4  → /dev/ttyWS_right  (via camera hub)
+# left arm (1-6):   xhci-hcd.0 port 2      → /dev/ttyWS_left
 
-SUBSYSTEM=="tty", ENV{ID_PATH}=="platform-xhci-hcd.1-usb-0:1:1.0", SYMLINK+="ttyWS_base",  MODE="0666"
-SUBSYSTEM=="tty", ENV{ID_PATH}=="platform-xhci-hcd.1-usb-0:2:1.0", SYMLINK+="ttyWS_right", MODE="0666"
-SUBSYSTEM=="tty", ENV{ID_PATH}=="platform-xhci-hcd.0-usb-0:2:1.0", SYMLINK+="ttyWS_left",  MODE="0666"
+SUBSYSTEM=="tty", ENV{ID_PATH}=="platform-xhci-hcd.1-usb-0:1:1.0",     SYMLINK+="ttyWS_base",  MODE="0666"
+SUBSYSTEM=="tty", ENV{ID_PATH}=="platform-xhci-hcd.0-usb-0:1.4.4:1.0", SYMLINK+="ttyWS_right", MODE="0666"
+SUBSYSTEM=="tty", ENV{ID_PATH}=="platform-xhci-hcd.0-usb-0:2:1.0",     SYMLINK+="ttyWS_left",  MODE="0666"
 
 # Generic Waveshare/CH340 permission rule
 SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", MODE="0666"
