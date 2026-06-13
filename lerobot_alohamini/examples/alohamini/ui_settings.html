@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><title>Controller Settings — AlohaMini</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0a0d14;color:#c8d0e0;font-family:'Segoe UI',Arial,sans-serif}
+.topbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:#0d1018;
+  border-bottom:1px solid #1a2030;position:sticky;top:0;z-index:10}
+a.back{color:#4a9eff;text-decoration:none;font-size:13px}
+h2{font-size:15px;color:#4a9eff;margin:0;font-weight:600}
+.gp-name{font-size:12px;color:#6a8aaa;margin-left:auto}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.card{background:#131822;border:1px solid #1e2535;border-radius:10px;padding:14px}
+.card-title{font-size:10px;color:#4a6080;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between}
+.reset-btn{font-size:11px;color:#f08080;cursor:pointer;background:none;border:1px solid #4a2020;
+  padding:2px 8px;border-radius:4px}
+.reset-btn:hover{background:#2a0808}
+
+/* Input rows */
+.irow{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;
+  margin-bottom:3px;transition:background .1s;cursor:default}
+.irow:hover{background:#1a2230}
+.irow.active{background:#0a3050!important}
+.irow.listening{background:#2a1a00!important;animation:blink .4s infinite alternate}
+@keyframes blink{from{border-color:#fa0}to{border-color:transparent}}
+.irow{border:1px solid transparent}
+.idx-badge{min-width:32px;font-size:11px;font-weight:700;color:#3a6080;text-align:center;
+  padding:2px 4px;border-radius:4px;background:#0d1520}
+.bar{width:90px;height:14px;background:#0d1520;border-radius:3px;overflow:hidden;position:relative;flex-shrink:0}
+.bar-fill{height:100%;background:#4a9eff;transition:width .05s;position:absolute;left:50%;transform:translateX(-50%)}
+.bar-fill.neg{background:#f06060}
+.bar-center{position:absolute;left:50%;top:0;width:1px;height:100%;background:#2a4060}
+.btn-dot{width:14px;height:14px;border-radius:50%;background:#1a2535;border:1px solid #2a3a50;flex-shrink:0;transition:.1s}
+.btn-dot.on{background:#4a9eff;box-shadow:0 0 6px #4a9eff}
+.btn-dot.sa{background:#fa0;box-shadow:0 0 6px #fa0;border-color:#c80}
+
+select.action-sel{flex:1;background:#0d1520;border:1px solid #1e2535;color:#c8d0e0;
+  border-radius:4px;padding:3px 6px;font-size:11px;min-width:0}
+select.action-sel:focus{outline:none;border-color:#4a9eff}
+
+.bind-btn{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid #2a4060;
+  background:#0a1520;color:#4a9eff;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.bind-btn:hover{background:#0d2540;border-color:#4a9eff}
+.bind-btn.listening{background:#3a2000;border-color:#fa0;color:#fa0}
+
+.val-txt{font-size:11px;color:#4a9eff;min-width:40px;text-align:right}
+
+/* SA row */
+.sa-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #1a2535;margin-top:8px}
+.sa-label{font-size:11px;color:#fa0;font-weight:600;min-width:80px}
+.sa-input{width:60px;background:#0d1520;border:1px solid #2a4060;color:#fa0;border-radius:4px;
+  padding:3px 6px;font-size:12px;text-align:center}
+
+/* Live indicator */
+.live-dot{width:7px;height:7px;border-radius:50%;background:#3f3;box-shadow:0 0 5px #3f3;flex-shrink:0}
+.live-dot.off{background:#333;box-shadow:none}
+
+.no-gp{color:#4a6080;font-size:13px;padding:20px;text-align:center}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="back" href="/">← Back</a>
+  <h2>🎮 Controller Bindings — RadioMaster</h2>
+  <span class="live-dot" id="live-dot"></span>
+  <span class="gp-name" id="gp-name">—</span>
+</div>
+
+<div class="layout">
+  <!-- BUTTONS -->
+  <div class="card">
+    <div class="card-title">
+      Buttons
+      <button class="reset-btn" onclick="resetBindings()">Reset all</button>
+    </div>
+    <div id="btn-list"><div class="no-gp">Waiting for gamepad…</div></div>
+
+    <div class="sa-row">
+      <span class="sa-label">⚡ SA ARM btn#</span>
+      <input id="sa-input" class="sa-input" type="number" min="0" max="31" value="6"
+        title="Button index used as ARM/DISARM switch (SA on RadioMaster)">
+      <button class="bind-btn" id="sa-bind-btn" onclick="startSaBind()">Bind SA</button>
+      <span style="font-size:11px;color:#6a8aaa">Click bind then press SA switch</span>
+    </div>
+  </div>
+
+  <!-- AXES -->
+  <div class="card">
+    <div class="card-title">Axes</div>
+    <div id="axis-list"><div class="no-gp">Waiting for gamepad…</div></div>
+  </div>
+</div>
+
+<script>
+const BTN_ACTIONS = ['none','joint_prev','joint_next','speed_up','speed_down','stop_base'];
+const AXIS_ACTIONS = ['none','x_vel','y_vel','theta_vel','lift','arm_left','arm_right'];
+
+let bindings = {axes:{}, buttons:{}, sa_arm_btn:6};
+let liveButtons = {}, liveAxes = {};
+let listening = null; // {type:'btn'|'sa', idx:null}
+let prevBtns = {};
+
+async function loadBindings(){
+  bindings = await(await fetch('/bindings')).json();
+  document.getElementById('sa-input').value = bindings.sa_arm_btn ?? 6;
+}
+
+async function saveBindings(){
+  await fetch('/bindings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(bindings)});
+}
+
+async function resetBindings(){
+  await fetch('/bindings/reset',{method:'POST'});
+  await loadBindings();
+  renderButtons(); renderAxes();
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function renderButtons(){
+  const el = document.getElementById('btn-list');
+  const saBtn = String(bindings.sa_arm_btn ?? 6);
+  const keys = Object.keys(liveButtons).sort((a,b)=>+a-+b);
+  if(!keys.length){el.innerHTML='<div class="no-gp">No buttons detected</div>';return;}
+
+  el.innerHTML = keys.map(i=>{
+    const cfg = bindings.buttons?.[i] || {action:'none',label:''};
+    const isSA = i === saBtn;
+    const val = liveButtons[i] ? 1 : 0;
+    const opts = BTN_ACTIONS.map(a=>`<option value="${a}"${a===cfg.action?' selected':''}>${a}</option>`).join('');
+    return `<div class="irow${val?' active':''}" id="brow_${i}">
+      <span class="idx-badge">B${i}</span>
+      <span class="btn-dot${val?' on':''}${isSA?' sa':''}" id="bdot_${i}"></span>
+      <select class="action-sel" id="bsel_${i}" onchange="setBtn('${i}',this.value)">${opts}</select>
+      <input type="text" style="width:60px;font-size:11px;background:#0d1520;border:1px solid #1e2535;color:#8aaccc;border-radius:4px;padding:2px 6px"
+        value="${cfg.label||''}" placeholder="label" onchange="setBtnLabel('${i}',this.value)" id="blbl_${i}">
+      <button class="bind-btn" id="bbind_${i}" onclick="startBind('${i}')">Bind</button>
+    </div>`;
+  }).join('');
+}
+
+function renderAxes(){
+  const el = document.getElementById('axis-list');
+  const keys = Object.keys(liveAxes).sort((a,b)=>+a-+b);
+  if(!keys.length){el.innerHTML='<div class="no-gp">No axes detected</div>';return;}
+  el.innerHTML = keys.map(i=>{
+    const cfg = bindings.axes?.[i] || {action:'none',scale:1,deadzone:0.1,invert:false};
+    const v = liveAxes[i] ?? 0;
+    const pct = Math.abs(v)*50;
+    const opts = AXIS_ACTIONS.map(a=>`<option value="${a}"${a===cfg.action?' selected':''}>${a}</option>`).join('');
+    return `<div class="irow${Math.abs(v)>.05?' active':''}" id="arow_${i}">
+      <span class="idx-badge">A${i}</span>
+      <div class="bar"><div class="bar-center"></div>
+        <div id="abar_${i}" class="bar-fill${v<0?' neg':''}" style="width:${pct}%"></div></div>
+      <span class="val-txt" id="aval_${i}">${v.toFixed(2)}</span>
+      <select class="action-sel" id="asel_${i}" onchange="setAxis('${i}',this.value)">${opts}</select>
+      <label style="font-size:11px;color:#6a8aaa;display:flex;align-items:center;gap:4px;cursor:pointer">
+        <input type="checkbox" id="ainv_${i}" ${cfg.invert?'checked':''} onchange="setAxisInvert('${i}',this.checked)">inv</label>
+    </div>`;
+  }).join('');
+}
+
+// ── Binding actions ──────────────────────────────────────────────────────────
+function setBtn(idx, action){
+  if(!bindings.buttons) bindings.buttons={};
+  if(!bindings.buttons[idx]) bindings.buttons[idx]={action:'none',label:''};
+  bindings.buttons[idx].action = action;
+  saveBindings();
+}
+function setBtnLabel(idx, label){
+  if(!bindings.buttons) bindings.buttons={};
+  if(!bindings.buttons[idx]) bindings.buttons[idx]={action:'none',label:''};
+  bindings.buttons[idx].label = label;
+  saveBindings();
+}
+function setAxis(idx, action){
+  if(!bindings.axes) bindings.axes={};
+  if(!bindings.axes[idx]) bindings.axes[idx]={action:'none',scale:1,deadzone:0.1,invert:false};
+  bindings.axes[idx].action = action;
+  saveBindings();
+}
+function setAxisInvert(idx, val){
+  if(!bindings.axes) bindings.axes={};
+  if(!bindings.axes[idx]) bindings.axes[idx]={action:'none',scale:1,deadzone:0.1,invert:false};
+  bindings.axes[idx].invert = val;
+  saveBindings();
+}
+
+// ── Bind by press ────────────────────────────────────────────────────────────
+function startBind(idx){
+  if(listening){ stopListen(); return; }
+  listening = {type:'btn', idx};
+  const btn = document.getElementById(`bbind_${idx}`);
+  if(btn){ btn.textContent='Press a btn…'; btn.classList.add('listening'); }
+}
+function startSaBind(){
+  if(listening){ stopListen(); return; }
+  listening = {type:'sa'};
+  const btn = document.getElementById('sa-bind-btn');
+  if(btn){ btn.textContent='Press SA switch…'; btn.classList.add('listening'); }
+}
+function stopListen(){
+  if(!listening) return;
+  if(listening.type==='btn' && listening.idx!=null){
+    const btn = document.getElementById(`bbind_${listening.idx}`);
+    if(btn){ btn.textContent='Bind'; btn.classList.remove('listening'); }
+  }
+  if(listening.type==='sa'){
+    const btn = document.getElementById('sa-bind-btn');
+    if(btn){ btn.textContent='Bind SA'; btn.classList.remove('listening'); }
+  }
+  listening = null;
+}
+
+function detectBind(btns){
+  if(!listening) return;
+  // Find a button that just went from 0→1
+  for(const [i, v] of Object.entries(btns)){
+    if(v && !prevBtns[i]){
+      if(listening.type === 'sa'){
+        bindings.sa_arm_btn = +i;
+        document.getElementById('sa-input').value = i;
+        // Update dot
+        saveBindings();
+        stopListen();
+        renderButtons();
+      } else if(listening.type === 'btn'){
+        // Move existing binding from target idx to this idx
+        const srcIdx = listening.idx;
+        if(!bindings.buttons) bindings.buttons={};
+        const srcCfg = bindings.buttons[srcIdx] || {action:'none',label:''};
+        bindings.buttons[String(i)] = {...srcCfg};
+        bindings.buttons[srcIdx] = {action:'none',label:''};
+        saveBindings();
+        stopListen();
+        renderButtons();
+      }
+      break;
+    }
+  }
+  prevBtns = {...btns};
+}
+
+// SA input direct edit
+document.getElementById('sa-input').addEventListener('change', e=>{
+  bindings.sa_arm_btn = +e.target.value;
+  saveBindings();
+  renderButtons();
+});
+
+// ── Poll ──────────────────────────────────────────────────────────────────────
+let _rendered = false;
+setInterval(async()=>{
+  try{
+    const d = await(await fetch('/status')).json();
+    const dot = document.getElementById('live-dot');
+    const connected = d.connected;
+    dot.className = 'live-dot' + (connected?'':' off');
+    document.getElementById('gp-name').textContent = d.gamepad||'—';
+
+    const btns = d.gamepad_buttons || {};
+    const axes = d.gamepad_axes || {};
+
+    // Detect bind
+    if(listening) detectBind(btns);
+
+    // Update live state
+    const needRenderBtns = Object.keys(btns).length !== Object.keys(liveButtons).length;
+    const needRenderAxes = Object.keys(axes).length !== Object.keys(liveAxes).length;
+    liveButtons = btns; liveAxes = axes;
+
+    if(needRenderBtns || !_rendered) { renderButtons(); _rendered=true; }
+    if(needRenderAxes || !_rendered) renderAxes();
+
+    // Live update button dots + rows (no re-render)
+    for(const [i, v] of Object.entries(btns)){
+      const dot = document.getElementById(`bdot_${i}`);
+      const row = document.getElementById(`brow_${i}`);
+      const isSA = String(i) === String(bindings.sa_arm_btn ?? 6);
+      if(dot){ dot.className = 'btn-dot'+(v?' on':'')+(isSA?' sa':''); }
+      if(row){ row.className = 'irow'+(v?' active':''); }
+    }
+    // Live update axis bars
+    for(const [i, v] of Object.entries(axes)){
+      const bar = document.getElementById(`abar_${i}`);
+      const val = document.getElementById(`aval_${i}`);
+      const row = document.getElementById(`arow_${i}`);
+      const pct = Math.abs(+v)*50;
+      if(bar){ bar.style.width=pct+'%'; bar.className='bar-fill'+(+v<0?' neg':''); }
+      if(val) val.textContent=(+v).toFixed(2);
+      if(row) row.className='irow'+(Math.abs(+v)>.05?' active':'');
+    }
+  }catch(e){}
+}, 80);
+
+loadBindings();
+</script>
+</body>
+</html>

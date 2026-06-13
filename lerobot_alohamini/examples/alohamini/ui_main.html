@@ -569,7 +569,8 @@ function camBox(key, src, devLabel, labels){
     :`<span id="badge_${key}" class="cam-part-badge">${devLabel}</span>`;
   return `<div class="cam-box">
     <div class="cam-label">${badge}</div>
-    <img src="${src}" alt="${devLabel}" loading="lazy" onerror="this.style.opacity='0.3'">
+    <img src="${src}" alt="${devLabel}" loading="lazy"
+      onerror="this.style.opacity='0.25';const s=this.src;setTimeout(()=>{this.src='';this.src=s;this.style.opacity='1';},4000)">
     <div class="cam-assign">
       <label>Part</label>
       <select onchange="assignCamera('${key}',this.value,'')">
@@ -580,9 +581,10 @@ function camBox(key, src, devLabel, labels){
   </div>`;
 }
 
-let _lastCamSig='';
-function renderAllCams(zmqNames, rawDevs, labels){
+let _lastCamSig='', _camServerUrl='';
+function renderAllCams(zmqNames, rawDevs, labels, camServerUrl){
   if(labels) camLabels=labels;
+  if(camServerUrl) _camServerUrl=camServerUrl;
   const sig=JSON.stringify({zmqNames,rawDevs});
   if(sig===_lastCamSig)return;
   _lastCamSig=sig;
@@ -604,7 +606,9 @@ function renderAllCams(zmqNames, rawDevs, labels){
   });
   (rawDevs||[]).forEach(idx=>{
     const key=`rawcam_${idx}`;
-    html+=camBox(key, `/rawcam/${idx}`, `video${idx}`, camLabels);
+    // Direct connection to Pi cam_server bypasses Flask proxy → no thread blocking
+    const src=_camServerUrl ? `${_camServerUrl}/cam/${idx}` : `/rawcam/${idx}`;
+    html+=camBox(key, src, `video${idx}`, camLabels);
   });
   grid.innerHTML=html;
 
@@ -675,7 +679,7 @@ setInterval(async()=>{
     if(waypoints.length)wl.innerHTML=waypoints.map((w,i)=>`<div class="wp-item${i===wpIdx&&wpActive?' active':''}"><b>${i+1}</b> · x:${w.x.toFixed(2)} y:${w.y.toFixed(2)}</div>`).join('');
     else wl.innerHTML='<div style="color:#3a4a60;font-size:12px;padding:20px;text-align:center">Click on map to add waypoints</div>';
     // all cameras in one grid
-    renderAllCams(d.cameras||[], d.rawcam_devs||[], d.camera_labels||{});
+    renderAllCams(d.cameras||[], d.rawcam_devs||[], d.camera_labels||{}, d.cam_server_url||'');
     // inference
     const is=document.getElementById('infer_status');
     is.className='infer-status '+(d.inference_mode?'running':'idle');
@@ -693,7 +697,7 @@ setInterval(async()=>{
     // ai joints
     if(d.arms)document.getElementById('ai_joints').innerText='L: '+JOINTS.map(j=>(d.arms.left[j]||0).toFixed(0)).join(', ')+' | R: '+JOINTS.map(j=>(d.arms.right[j]||0).toFixed(0)).join(', ');
   }catch(e){}
-},200);
+},500);
 </script>
 </body>
 </html>

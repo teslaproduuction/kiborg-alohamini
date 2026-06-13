@@ -739,6 +739,7 @@ def status():
             cameras=state["camera_names"],
             camera_labels=cam_labels,
             rawcam_devs=CAM_SERVER_DEVS,
+            cam_server_url=f"http://{REMOTE_IP}:{CAM_SERVER_PORT}",
             inference_mode=state["inference_mode"],
             inference_status=state["inference_status"],
             recording=state["recording"],
@@ -906,7 +907,10 @@ def serve_mesh(filename):
 def index(): return MAIN_HTML
 
 @app.route('/settings')
-def settings_page(): return SETTINGS_HTML
+def settings_page():
+    p = Path(__file__).parent / "ui_settings.html"
+    if p.exists(): return p.read_text(encoding="utf-8")
+    return SETTINGS_HTML  # fallback to old embedded
 
 # ── Load HTML pages ───────────────────────────────────────────────────────────
 def _load_main_html():

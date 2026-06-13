@@ -1,64 +1,53 @@
 """
 AlohaMini Camera Server
-Streams remaining cameras (not used by lekiwi_host) as MJPEG over HTTP.
-Runs on Pi alongside lekiwi_host.
+Streams cameras as MJPEG over HTTP (single-frame ffmpeg grabs).
 
   python robot_cam_server.py          # default: video2,4,6,8 on port 8091
-  CAMS=0,2,4,6,8 python robot_cam_server.py   # override which devices
+  CAMS=0,2,4,6,8 python robot_cam_server.py
 
 Routes:
-  /cam/<index>          MJPEG stream  (e.g. /cam/2)
-  /snap/<index>         single JPEG snapshot
-  /list                 JSON list of active cameras
+  /cam/<index>   MJPEG stream
+  /snap/<index>  single JPEG
+  /list          JSON list of active cameras
 """
 
 import os, threading, time, subprocess
 from pathlib import Path
 from flask import Flask, Response, jsonify
 
-CAM_PORT   = int(os.environ.get("CAM_PORT", 8091))
-FFMPEG     = os.environ.get("FFMPEG", "/home/pi/miniforge3/envs/lerobot/bin/ffmpeg")
-# Default: video2,4,6,8 — video0 is used by lekiwi_host
-CAMS_ENV   = os.environ.get("CAMS", "2,4,6,8")
-CAM_DEVS   = [f"/dev/video{n.strip()}" for n in CAMS_ENV.split(",")]
-FPS        = int(os.environ.get("CAM_FPS", "5"))
-W, H       = 320, 240  # low res for USB 1.1 hub cameras; set to 640,480 after USB 3.0
+CAM_PORT = int(os.environ.get("CAM_PORT", 8091))
+FFMPEG   = os.environ.get("FFMPEG", "/home/pi/miniforge3/envs/lerobot/bin/ffmpeg")
+CAMS_ENV = os.environ.get("CAMS", "2,4,6,8")
+CAM_DEVS = [f"/dev/video{n.strip()}" for n in CAMS_ENV.split(",")]
+FPS      = int(os.environ.get("CAM_FPS", "3"))
+W, H     = 320, 240
 
 app = Flask(__name__)
 _frames: dict[str, bytes] = {}
 _lock   = threading.Lock()
 
 def grab_loop(dev: str):
-    """Grab single JPEG frames repeatedly via ffmpeg."""
     while True:
         try:
-            result = subprocess.run(
-                [FFMPEG, "-y",
-                 "-f", "v4l2", "-input_format", "mjpeg",
-                 "-video_size", f"{W}x{H}",
-                 "-i", dev,
-                 "-frames:v", "1",
-                 "-f", "image2", "-vcodec", "mjpeg", "pipe:1"],
-                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                timeout=5,
+            r = subprocess.run(
+                [FFMPEG, "-y", "-f", "v4l2", "-input_format", "mjpeg",
+                 "-video_size", f"{W}x{H}", "-i", dev,
+                 "-frames:v", "1", "-f", "image2", "-vcodec", "mjpeg", "pipe:1"],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=5,
             )
-            if result.returncode == 0 and result.stdout:
-                data = result.stdout
-                # Find JPEG start
-                s = data.find(b"\xff\xd8")
+            if r.returncode == 0 and r.stdout:
+                s = r.stdout.find(b"\xff\xd8")
                 if s >= 0:
                     with _lock:
-                        _frames[dev] = data[s:]
+                        _frames[dev] = r.stdout[s:]
         except Exception as e:
             print(f"[CamServer] {dev}: {e}")
         time.sleep(1.0 / FPS)
 
-# Start grab threads
 active = []
 for dev in CAM_DEVS:
     if Path(dev).exists():
-        t = threading.Thread(target=grab_loop, args=(dev,), daemon=True)
-        t.start()
+        threading.Thread(target=grab_loop, args=(dev,), daemon=True).start()
         active.append(dev)
         print(f"[CamServer] streaming {dev}")
     else:
@@ -69,26 +58,26 @@ def mjpeg_stream(idx):
     dev = f"/dev/video{idx}"
     def gen():
         while True:
-            with _lock:
-                frame = _frames.get(dev, b"")
+            with _lock: frame = _frames.get(dev, b"")
             if frame:
-                yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+                yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
             time.sleep(1.0 / FPS)
-    return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
+    r = Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
+    r.headers["Access-Control-Allow-Origin"] = "*"
+    return r
 
 @app.route("/snap/<int:idx>")
 def snapshot(idx):
     dev = f"/dev/video{idx}"
-    with _lock:
-        frame = _frames.get(dev, b"")
-    if not frame:
-        return "no frame", 404
-    return Response(frame, mimetype="image/jpeg")
+    with _lock: frame = _frames.get(dev, b"")
+    if not frame: return "no frame", 404
+    r = Response(frame, mimetype="image/jpeg")
+    r.headers["Access-Control-Allow-Origin"] = "*"
+    return r
 
 @app.route("/list")
 def cam_list():
-    with _lock:
-        alive = [d for d in active if d in _frames]
+    with _lock: alive = [d for d in active if d in _frames]
     return jsonify(cameras=alive, all=active)
 
 if __name__ == "__main__":
