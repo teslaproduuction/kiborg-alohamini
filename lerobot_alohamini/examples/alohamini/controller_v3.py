@@ -490,8 +490,10 @@ def gamepad_loop():
                         elif act in("arm_left","arm_right") and abs(v)>.05:
                             j=ARM_JOINTS[sel]; side="arm_left" if act=="arm_left" else "arm_right"
                             with lock: state[side][j]=max(-100,min(100,state[side][j]+v*2))
-                            if act=="arm_left": trig_l_val=max(trig_l_val, abs(v))
-                            else:               trig_r_val=max(trig_r_val, abs(v))
+                            # triggers: rest=-1.0, fully pressed=+1.0; normalize to 0..1
+                            normed = (float(axes.get(ai,0)) + 1.0) / 2.0
+                            if act=="arm_left": trig_l_val=max(trig_l_val, normed)
+                            else:               trig_r_val=max(trig_r_val, normed)
                     with lock: state["base_cmd"]={"x":nx,"y":ny,"theta":nth}; state["lift_height"]=nlh
                     for bi,cfg in bindings.get("buttons",{}).items():
                         cur=btns.get(bi,False); prev=last_btns.get(bi,False)
@@ -518,7 +520,7 @@ def gamepad_loop():
 
                     # Both triggers pressed → ARM (rising edge only)
                     # If PS4 not connected: arm base only; if PS4 connected: full arm
-                    both_now = trig_l_val > 0.5 and trig_r_val > 0.5
+                    both_now = trig_l_val > 0.6 and trig_r_val > 0.6  # >0.6 = ~80% press
                     if both_now and not last_both_triggers:
                         with lock: disarmed = state["robot_disarmed"]
                         if disarmed:
