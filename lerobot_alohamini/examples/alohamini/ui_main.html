@@ -423,7 +423,6 @@ async function navToggleArm(){
 }
 
 async function armDisarm(){
-  if(!confirm('Дизармировать ВЕСЬ робот? Все моторы станут вялыми.')) return;
   await fetch('/arm/disarm',{method:'POST'});
   _disarmed=true;
   document.getElementById('disarm-btn').style.display='none';
