@@ -3,65 +3,94 @@
 <head>
 <meta charset="utf-8"><title>PS4 Arms Settings — AlohaMini</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+:root{
+  --bg:#080b10;--bg1:#0c0f16;--bg2:#10141e;--bg3:#161c28;
+  --border:#1c2333;--border2:#253040;
+  --txt:#b8c4d8;--txt2:#68788f;--txt3:#3a4a60;
+  --accent:#e8a020;--accentlo:#3a2a00;
+  --blue:#3d8ef0;--bluelo:#0a1e3a;
+  --green:#28c46a;--red:#e05050;--redlo:#1e0808;
+  --mono:'JetBrains Mono',monospace;--ui:'Barlow Condensed',sans-serif;
+}
+body.light{
+  --bg:#e8eaed;--bg1:#f0f2f4;--bg2:#e0e3e8;--bg3:#d4d8df;
+  --border:#c0c6d0;--border2:#a8b0bc;
+  --txt:#1e2530;--txt2:#4a5668;--txt3:#7a8898;
+  --accent:#b87010;--accentlo:#f5e8d0;
+  --blue:#1a5ec8;--bluelo:#dce8f8;
+  --green:#167a40;--red:#c03030;--redlo:#f8dada;
+}
 *{box-sizing:border-box}
-body{margin:0;background:#0a0d14;color:#c8d0e0;font-family:'Segoe UI',Arial,sans-serif}
-.topbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:#0d1018;
-  border-bottom:1px solid #1a2030;position:sticky;top:0;z-index:10}
-a.back{color:#4a9eff;text-decoration:none;font-size:13px}
-h2{font-size:15px;color:#a0d0ff;margin:0;font-weight:600}
-.gp-name{font-size:12px;color:#6a8aaa;margin-left:auto}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--ui);font-size:14px}
+.topbar{display:flex;align-items:center;gap:12px;padding:0 16px;height:44px;
+  background:var(--bg1);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+a.back{color:var(--blue);text-decoration:none;font-size:13px;font-weight:600}
+h2{font-size:14px;font-weight:700;color:var(--txt);margin:0;letter-spacing:.3px}
+.gp-name{font-size:11px;font-family:var(--mono);color:var(--txt2);margin-left:auto;
+  padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg3)}
+.theme-btn{cursor:pointer;font-size:15px;padding:2px 8px;border-radius:4px;
+  border:1px solid var(--border);background:var(--bg2);color:var(--txt2);margin-left:4px}
 .layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px}
 @media(max-width:800px){.layout{grid-template-columns:1fr}}
-.card{background:#131822;border:1px solid #1e2535;border-radius:10px;padding:14px}
-.card-title{font-size:10px;color:#4a6080;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.card-title{font-size:10px;font-family:var(--mono);color:var(--txt3);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;
   display:flex;align-items:center;justify-content:space-between}
-.reset-btn{font-size:11px;color:#f08080;cursor:pointer;background:none;border:1px solid #4a2020;
-  padding:2px 8px;border-radius:4px}
-.reset-btn:hover{background:#2a0808}
-
-/* Speed row */
+.reset-btn{font-size:11px;color:var(--red);cursor:pointer;background:none;
+  border:1px solid var(--redlo);padding:2px 8px;border-radius:4px}
+.reset-btn:hover{background:var(--redlo)}
 .speed-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px;
-  background:#0d1520;border-radius:6px;border:1px solid #1a2535}
-.speed-row label{font-size:11px;color:#6a8aaa;min-width:70px}
-.speed-row input[type=range]{flex:1;accent-color:#a0d0ff}
-.speed-row .sv{min-width:36px;text-align:right;font-size:12px;color:#a0d0ff;font-weight:700}
-
-/* Input rows */
+  background:var(--bg3);border-radius:6px;border:1px solid var(--border)}
+.speed-row label{font-size:11px;color:var(--txt2);min-width:70px;font-family:var(--mono)}
+.speed-row input[type=range]{flex:1;accent-color:var(--blue)}
+.speed-row .sv{min-width:36px;text-align:right;font-size:12px;font-family:var(--mono);color:var(--blue);font-weight:700}
 .irow{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;
   margin-bottom:3px;transition:background .1s;cursor:default;border:1px solid transparent}
-.irow:hover{background:#1a2230}
-.irow.active{background:#0a3050!important}
-.irow.listening{background:#2a1a00!important;animation:blink .4s infinite alternate}
-@keyframes blink{from{border-color:#a0d0ff}to{border-color:transparent}}
-.idx-badge{min-width:32px;font-size:11px;font-weight:700;color:#3a6080;text-align:center;
-  padding:2px 4px;border-radius:4px;background:#0d1520}
-.bar{width:90px;height:14px;background:#0d1520;border-radius:3px;overflow:hidden;position:relative;flex-shrink:0}
-.bar-fill{height:100%;background:#a0d0ff;transition:width .05s;position:absolute;left:50%;transform:translateX(-50%)}
-.bar-fill.neg{background:#f06060}
-.bar-center{position:absolute;left:50%;top:0;width:1px;height:100%;background:#2a4060}
-.btn-dot{width:14px;height:14px;border-radius:50%;background:#1a2535;border:1px solid #2a3a50;flex-shrink:0;transition:.1s}
-.btn-dot.on{background:#a0d0ff;box-shadow:0 0 6px #a0d0ff}
-
-select.action-sel{flex:1;background:#0d1520;border:1px solid #1e2535;color:#c8d0e0;
-  border-radius:4px;padding:3px 6px;font-size:11px;min-width:0}
-select.action-sel:focus{outline:none;border-color:#a0d0ff}
-.bind-btn{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid #2a4060;
-  background:#0a1520;color:#a0d0ff;cursor:pointer;white-space:nowrap;flex-shrink:0}
-.bind-btn:hover{background:#0d2540;border-color:#a0d0ff}
-.bind-btn.listening{background:#3a2000;border-color:#fa0;color:#fa0}
-.val-txt{font-size:11px;color:#a0d0ff;min-width:40px;text-align:right}
-
-/* trigger L2/R2 config */
-.trig-row{display:flex;align-items:center;gap:10px;padding:8px;background:#0d1520;
-  border-radius:6px;border:1px solid #1a2535;margin-bottom:6px;font-size:12px}
-.trig-row label{color:#6a8aaa;min-width:55px}
-.trig-row input[type=number]{width:52px;background:#0a0d14;border:1px solid #2a3a55;
-  color:#c8d0e0;border-radius:4px;padding:3px 6px;font-size:12px}
-
-.live-dot{width:7px;height:7px;border-radius:50%;background:#3f3;box-shadow:0 0 5px #3f3;flex-shrink:0}
-.live-dot.off{background:#333;box-shadow:none}
-.no-gp{color:#4a6080;font-size:13px;padding:20px;text-align:center}
+.irow:hover{background:var(--bg3)}
+.irow.active{background:var(--bluelo)!important;border-color:var(--blue)!important}
+.irow.listening{background:var(--accentlo)!important;border-color:var(--accent)!important;animation:blink .4s infinite alternate}
+@keyframes blink{from{opacity:1}to{opacity:.6}}
+.idx-badge{min-width:32px;font-size:11px;font-weight:700;font-family:var(--mono);
+  color:var(--txt3);text-align:center;padding:2px 4px;border-radius:4px;background:var(--bg3)}
+.bar{width:90px;height:14px;background:var(--bg3);border-radius:3px;overflow:hidden;position:relative;flex-shrink:0;border:1px solid var(--border)}
+.bar-fill{height:100%;background:var(--blue);transition:width .05s;position:absolute;left:50%;transform:translateX(-50%)}
+.bar-fill.neg{background:var(--red)}
+.bar-center{position:absolute;left:50%;top:0;width:1px;height:100%;background:var(--border2)}
+.btn-dot{width:14px;height:14px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);flex-shrink:0;transition:.1s}
+.btn-dot.on{background:var(--blue);box-shadow:0 0 6px var(--blue)}
+select.action-sel{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--txt);
+  border-radius:4px;padding:3px 6px;font-size:11px;min-width:0;font-family:var(--ui)}
+select.action-sel:focus{outline:none;border-color:var(--blue)}
+.bind-btn{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--border2);
+  background:var(--bg);color:var(--blue);cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:var(--ui)}
+.bind-btn:hover{background:var(--bluelo);border-color:var(--blue)}
+.bind-btn.listening{background:var(--accentlo);border-color:var(--accent);color:var(--accent)}
+.val-txt{font-size:11px;font-family:var(--mono);color:var(--blue);min-width:40px;text-align:right}
+.trig-row{display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg3);
+  border-radius:6px;border:1px solid var(--border);margin-bottom:6px;font-size:12px}
+.trig-row label{color:var(--txt2);min-width:55px;font-family:var(--mono)}
+.trig-row input[type=number]{width:52px;background:var(--bg);border:1px solid var(--border2);
+  color:var(--txt);border-radius:4px;padding:3px 6px;font-size:12px;font-family:var(--mono)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);flex-shrink:0}
+.live-dot.off{background:var(--border2);box-shadow:none}
+.no-gp{color:var(--txt3);font-size:13px;padding:20px;text-align:center}
+/* deadzone sub-row */
+.irow{flex-wrap:wrap}
+.dz-sub{width:100%;display:flex;align-items:center;gap:6px;margin-top:5px;padding-top:4px;border-top:1px solid var(--border)}
+.dz-sub span.lbl{font-size:9px;font-family:var(--mono);color:var(--txt3);min-width:16px}
+.dz-sub input[type=range]{flex:1;accent-color:var(--accent);height:3px}
+.dz-val{font-size:9px;font-family:var(--mono);color:var(--accent);min-width:30px;text-align:right}
+/* dz marker on bar */
+.bar-dz{position:absolute;top:0;height:100%;background:rgba(232,160,32,.18);transform:translateX(-50%)}
+/* calibrate button */
+.calib-btn{font-size:10px;padding:2px 9px;border-radius:4px;border:1px solid var(--border2);
+  background:var(--bg);color:var(--accent);cursor:pointer;font-family:var(--mono)}
+.calib-btn:hover{background:var(--accentlo);border-color:var(--accent)}
+.calib-btn.running{background:var(--accentlo);border-color:var(--accent);animation:blink .4s infinite alternate}
+.calib-countdown{font-size:10px;font-family:var(--mono);color:var(--accent);margin-left:6px}
 </style>
 </head>
 <body>
@@ -70,6 +99,7 @@ select.action-sel:focus{outline:none;border-color:#a0d0ff}
   <h2>🕹️ PS4 / DualShock Arm Bindings</h2>
   <span class="live-dot" id="live-dot"></span>
   <span class="gp-name" id="gp-name">—</span>
+  <span class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">☀</span>
 </div>
 
 <div class="layout">
@@ -93,7 +123,12 @@ select.action-sel:focus{outline:none;border-color:#a0d0ff}
 
   <!-- AXES -->
   <div class="card">
-    <div class="card-title">Axes</div>
+    <div class="card-title">Axes
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="calib-countdown" id="calib-cd"></span>
+        <button class="calib-btn" id="calib-btn" onclick="startCalibrate()">⊙ Auto DZ</button>
+      </div>
+    </div>
 
     <!-- L2 / R2 axis indices -->
     <div class="trig-row">
@@ -167,18 +202,30 @@ function renderAxes(){
   const keys = Object.keys(liveAxes).sort((a,b)=>+a-+b);
   if(!keys.length){el.innerHTML='<div class="no-gp">No axes detected</div>';return;}
   el.innerHTML = keys.map(i=>{
-    const cfg = bindings.axes?.[i] || {joint:'none',invert:false,deadzone:0.18};
+    const cfg = bindings.axes?.[i] || {joint:'none',invert:false,deadzone:0.10};
     const v = liveAxes[i] ?? 0;
     const pct = Math.abs(v)*50;
+    const dz = cfg.deadzone ?? 0.10;
+    const dzPct = dz * 100;  // dz in bar: each side is 50% wide, dz fraction of that
+    const beyondDz = Math.abs(v) > dz;
     const opts = AXIS_JOINTS.map(a=>`<option value="${a}"${a===(cfg.joint||'none')?' selected':''}>${a}</option>`).join('');
-    return `<div class="irow${Math.abs(v)>.05?' active':''}" id="aarow_${i}">
+    return `<div class="irow${beyondDz?' active':''}" id="aarow_${i}">
       <span class="idx-badge">A${i}</span>
       <div class="bar"><div class="bar-center"></div>
-        <div id="aabar_${i}" class="bar-fill${v<0?' neg':''}" style="width:${pct}%"></div></div>
+        <div class="bar-dz" id="aadz_mark_${i}" style="width:${dzPct}%"></div>
+        <div id="aabar_${i}" class="bar-fill${v<0?' neg':''}" style="width:${pct}%"></div>
+      </div>
       <span class="val-txt" id="aaval_${i}">${v.toFixed(2)}</span>
       <select class="action-sel" onchange="setAxis('${i}',this.value)">${opts}</select>
-      <label style="font-size:11px;color:#6a8aaa;display:flex;align-items:center;gap:4px;cursor:pointer">
+      <label style="font-size:11px;color:var(--txt2);display:flex;align-items:center;gap:4px;cursor:pointer">
         <input type="checkbox" ${cfg.invert?'checked':''} onchange="setAxisInvert('${i}',this.checked)">inv</label>
+      <div class="dz-sub">
+        <span class="lbl">DZ</span>
+        <input type="range" min="0" max="0.5" step="0.01" value="${dz.toFixed(2)}"
+          id="aadz_range_${i}"
+          oninput="setAxisDz('${i}',parseFloat(this.value))">
+        <span class="dz-val" id="aadz_${i}">${dz.toFixed(2)}</span>
+      </div>
     </div>`;
   }).join('');
 }
@@ -198,9 +245,72 @@ function setAxis(idx, joint){
 }
 function setAxisInvert(idx, val){
   if(!bindings.axes) bindings.axes={};
-  if(!bindings.axes[idx]) bindings.axes[idx]={joint:'none',invert:false,deadzone:0.18,scale:1.0};
+  if(!bindings.axes[idx]) bindings.axes[idx]={joint:'none',invert:false,deadzone:0.10,scale:1.0};
   bindings.axes[idx].invert = val;
   saveBindings();
+}
+function setAxisDz(idx, val){
+  const dz = Math.round(parseFloat(val)*100)/100;
+  if(!bindings.axes) bindings.axes={};
+  if(!bindings.axes[idx]) bindings.axes[idx]={joint:'none',invert:false,deadzone:0.10,scale:1.0};
+  bindings.axes[idx].deadzone = dz;
+  // update display
+  const dzEl = document.getElementById(`aadz_${idx}`);
+  const mk = document.getElementById(`aadz_mark_${idx}`);
+  if(dzEl) dzEl.textContent = dz.toFixed(2);
+  if(mk) mk.style.width = (dz*100)+'%';
+  saveBindings();
+}
+
+// ── Auto-calibrate deadzone ───────────────────────────────────────────────────
+let _calibRunning = false;
+async function startCalibrate(){
+  if(_calibRunning) return;
+  _calibRunning = true;
+  const btn = document.getElementById('calib-btn');
+  const cd  = document.getElementById('calib-cd');
+  btn.classList.add('running');
+  btn.textContent = '⊙ Sampling…';
+
+  const samples = {};  // axis → max abs value seen
+  const DURATION = 3000; const INTERVAL = 80;
+  let remaining = DURATION;
+  const iv = setInterval(async()=>{
+    remaining -= INTERVAL;
+    cd.textContent = remaining > 0 ? `${(remaining/1000).toFixed(1)}s` : '';
+    try{
+      const d = await(await fetch('/status')).json();
+      const axes = d.arm_gamepad_axes || {};
+      for(const [i, v] of Object.entries(axes)){
+        const abs = Math.abs(+v);
+        // Ignore triggers at rest (~1.0) — they're not sticks
+        if(abs > 0.8) continue;
+        samples[i] = Math.max(samples[i] ?? 0, abs);
+      }
+    }catch(e){}
+    if(remaining <= 0){
+      clearInterval(iv);
+      // Apply: dz = max_noise * 1.5, minimum 0.05, maximum 0.3
+      for(const [idx, maxNoise] of Object.entries(samples)){
+        const dz = Math.min(0.30, Math.max(0.05, Math.round(maxNoise * 150)/100));
+        if(!bindings.axes) bindings.axes={};
+        if(!bindings.axes[idx]) bindings.axes[idx]={joint:'none',invert:false,deadzone:0.10,scale:1.0};
+        bindings.axes[idx].deadzone = dz;
+        // Update UI
+        const rangeEl = document.getElementById(`aadz_range_${idx}`);
+        const dzEl = document.getElementById(`aadz_${idx}`);
+        const mk = document.getElementById(`aadz_mark_${idx}`);
+        if(rangeEl) rangeEl.value = dz;
+        if(dzEl) dzEl.textContent = dz.toFixed(2);
+        if(mk) mk.style.width = (dz*100)+'%';
+      }
+      await saveBindings();
+      btn.classList.remove('running');
+      btn.textContent = '✓ Done';
+      setTimeout(()=>{ btn.textContent='⊙ Auto DZ'; }, 2000);
+      _calibRunning = false;
+    }
+  }, INTERVAL);
 }
 
 // ── Bind by press ─────────────────────────────────────────────────────────────
@@ -275,14 +385,27 @@ setInterval(async()=>{
       const val = document.getElementById(`aaval_${i}`);
       const row = document.getElementById(`aarow_${i}`);
       const pct = Math.abs(+v)*50;
+      const dz = bindings.axes?.[i]?.deadzone ?? 0.10;
+      const beyondDz = Math.abs(+v) > dz;
       if(bar){ bar.style.width=pct+'%'; bar.className='bar-fill'+(+v<0?' neg':''); }
       if(val) val.textContent=(+v).toFixed(2);
-      if(row) row.className='irow'+(Math.abs(+v)>.05?' active':'');
+      if(row && !row.classList.contains('listening')) row.className='irow'+(beyondDz?' active':'');
     }
   }catch(e){}
 }, 80);
 
 loadBindings();
+function toggleTheme(){
+  const l=document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent=l?'🌙':'☀';
+  localStorage.setItem('theme',l?'light':'dark');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  if(localStorage.getItem('theme')==='light'){
+    document.body.classList.add('light');
+    const b=document.getElementById('theme-btn');if(b)b.textContent='🌙';
+  }
+});
 </script>
 </body>
 </html>

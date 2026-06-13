@@ -3,32 +3,167 @@
 <head>
 <meta charset="utf-8"><title>AlohaMini Control</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+:root{
+  --bg:       #080b10;
+  --bg1:      #0c0f16;
+  --bg2:      #10141e;
+  --bg3:      #161c28;
+  --border:   #1c2333;
+  --border2:  #253040;
+  --txt:      #b8c4d8;
+  --txt2:     #68788f;
+  --txt3:     #3a4a60;
+  --accent:   #e8a020;
+  --accentlo: #3a2a00;
+  --blue:     #3d8ef0;
+  --bluelo:   #0a1e3a;
+  --green:    #28c46a;
+  --greenlo:  #041a0e;
+  --red:      #e05050;
+  --redlo:    #1e0808;
+  --mono: 'JetBrains Mono', monospace;
+  --ui:   'Barlow Condensed', sans-serif;
+}
+/* ── LIGHT THEME ─────────────────────────────────────────────────── */
+body.light{
+  --bg:       #e8eaed;
+  --bg1:      #f0f2f4;
+  --bg2:      #e0e3e8;
+  --bg3:      #d4d8df;
+  --border:   #c0c6d0;
+  --border2:  #a8b0bc;
+  --txt:      #1e2530;
+  --txt2:     #4a5668;
+  --txt3:     #7a8898;
+  --accent:   #b87010;
+  --accentlo: #f5e8d0;
+  --blue:     #1a5ec8;
+  --bluelo:   #dce8f8;
+  --green:    #167a40;
+  --greenlo:  #d4f0e0;
+  --red:      #c03030;
+  --redlo:    #f8dada;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:#0a0d14;color:#c8d0e0;font-family:'Segoe UI',Arial,sans-serif;overflow-x:hidden}
-.topbar{display:flex;align-items:center;gap:14px;padding:8px 16px;background:#0d1018;border-bottom:1px solid #1a2030;position:sticky;top:0;z-index:100}
-.dot{width:9px;height:9px;border-radius:50%;background:#f33;display:inline-block;margin-right:5px;transition:.3s}
-.dot.ok{background:#3f3;box-shadow:0 0 6px #3f3}
-h1{font-size:15px;color:#4a9eff;margin:0;font-weight:600}
-a.nav{color:#8090b0;text-decoration:none;padding:5px 12px;border:1px solid #253040;border-radius:6px;font-size:12px;transition:.15s}
-a.nav:hover{border-color:#4a9eff;color:#4a9eff}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--ui);font-size:14px;overflow-x:hidden}
 
-.tabs{display:flex;gap:4px;padding:8px 12px 0;background:#0a0d14}
-.tab{padding:8px 18px;background:#0d1018;border:1px solid #1a2030;border-bottom:none;border-radius:8px 8px 0 0;
-     cursor:pointer;font-size:13px;color:#6a7a95}
-.tab.active{background:#131822;color:#4a9eff;border-color:#253040}
-.view{display:none;padding:12px}.view.active{display:block}
+/* ── TOPBAR ───────────────────────────────────────────────────────── */
+.topbar{
+  display:flex;align-items:center;gap:0;
+  height:44px;padding:0;
+  background:var(--bg1);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.topbar-brand{
+  display:flex;align-items:center;gap:8px;
+  padding:0 16px 0 14px;
+  border-right:1px solid var(--border);
+  height:100%;
+  flex-shrink:0;
+}
+.topbar-brand .logo-mark{
+  width:22px;height:22px;border-radius:5px;
+  background:linear-gradient(135deg,#1a3a6a,#2d6aaa);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;
+}
+.topbar-brand h1{
+  font-family:var(--ui);font-size:15px;font-weight:700;
+  color:var(--txt);margin:0;letter-spacing:.5px;
+}
+.topbar-brand .model-tag{
+  font-family:var(--mono);font-size:9px;color:var(--txt3);
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:3px;padding:1px 5px;letter-spacing:.5px;margin-top:1px;
+}
+
+.topbar-status{
+  display:flex;align-items:center;gap:10px;
+  padding:0 14px;border-right:1px solid var(--border);height:100%;
+}
+.status-pill{
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  padding:3px 8px;border-radius:4px;
+  background:var(--bg3);border:1px solid var(--border);
+  white-space:nowrap;
+}
+.status-pill .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--red);
+  flex-shrink:0;transition:all .4s;
+}
+.status-pill .dot.ok{background:var(--green);box-shadow:0 0 5px var(--green)}
+.status-pill .dot.warn{background:var(--accent);box-shadow:0 0 5px var(--accent);animation:blink .8s infinite}
+@keyframes blink{50%{opacity:.3}}
+
+.topbar-gamepads{
+  display:flex;align-items:center;gap:6px;
+  padding:0 12px;border-right:1px solid var(--border);height:100%;
+}
+.gp-badge{
+  font-family:var(--mono);font-size:10px;color:var(--txt2);
+  padding:2px 7px;border-radius:3px;border:1px solid var(--border);
+  background:var(--bg2);white-space:nowrap;max-width:140px;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.gp-badge.active{color:#f0c060;border-color:#3a2800}
+
+.topbar-arm{flex-shrink:0;padding:0 12px;border-right:1px solid var(--border);height:100%;display:flex;align-items:center}
+#arm-status-nav{
+  font-family:var(--ui);font-size:12px;font-weight:700;letter-spacing:.8px;
+  padding:5px 14px;border-radius:5px;cursor:pointer;
+  background:var(--redlo);border:1px solid #5a1818;color:var(--red);
+  transition:all .2s;white-space:nowrap;display:none;text-transform:uppercase;
+}
+#arm-status-nav.armed{background:var(--accentlo);border-color:#6a4000;color:var(--accent);box-shadow:0 0 10px rgba(232,160,32,.15)}
+#arm-status-nav:hover{filter:brightness(1.2)}
+#arm-side-top{
+  font-family:var(--mono);font-size:10px;color:#6aacf0;
+  padding:2px 8px;border-radius:4px;background:var(--bluelo);border:1px solid #1a3060;
+  display:none;margin-left:6px;
+}
+
+.topbar-nav{display:flex;align-items:center;gap:4px;padding:0 10px;height:100%;margin-left:auto}
+a.nav, span.nav{
+  font-family:var(--ui);font-size:12px;font-weight:500;letter-spacing:.3px;
+  color:var(--txt2);text-decoration:none;
+  padding:5px 11px;border:1px solid transparent;border-radius:5px;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+a.nav:hover,span.nav:hover{color:var(--txt);border-color:var(--border2);background:var(--bg3)}
+span.nav.shutdown{color:#b05050}
+span.nav.shutdown:hover{color:var(--red);border-color:#4a1818;background:var(--redlo)}
+
+/* ── TABS ─────────────────────────────────────────────────────────── */
+.tabs{
+  display:flex;gap:1px;padding:0 12px;
+  background:var(--bg1);border-bottom:1px solid var(--border);
+}
+.view{display:none;padding:12px;background:var(--bg)}.view.active{display:block}
+.tab{
+  padding:9px 18px 8px;font-family:var(--ui);font-weight:600;font-size:13px;
+  letter-spacing:.3px;text-transform:uppercase;
+  color:var(--txt3);cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .15s;
+}
+.tab:hover{color:var(--txt2)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+/* view handled above */
 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 @media(max-width:800px){.grid2,.grid3{grid-template-columns:1fr}}
 
-.card{background:#131822;border:1px solid #1e2535;border-radius:10px;padding:12px}
-.card-title{font-size:10px;color:#4a6080;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.card-title{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-family:var(--mono)}
 
 /* Cameras */
 .cam-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-.cam-box{background:#060a10;border:1px solid #1e2535;border-radius:8px;overflow:hidden;position:relative}
+.cam-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative}
 .cam-box img{width:100%;display:block;background:#000;min-height:160px}
 .cam-label{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.75);color:#4a9eff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
 .cam-assign{padding:6px 8px;display:flex;align-items:center;gap:6px;border-top:1px solid #1a2535;background:#080c14}
@@ -47,15 +182,15 @@ a.nav:hover{border-color:#4a9eff;color:#4a9eff}
 
 /* Dpad */
 .dpad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,58px);gap:4px;margin:0 auto;width:max-content}
-.db{background:#1a2030;border:1px solid #253040;border-radius:8px;display:flex;align-items:center;justify-content:center;
+.db{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;
     font-size:19px;cursor:pointer;touch-action:none;color:#8090b0;user-select:none}
 .db:active,.db.on{background:#4a9eff;color:#000;border-color:#4a9eff}
 .stopb{background:#2a0d0d;border-color:#4a2020}.stopb:active,.stopb.on{background:#f44;color:#fff}
 
 /* Lift */
-.lift-outer{background:#0a0d14;border:1px solid #1e2535;border-radius:8px;height:130px;position:relative;overflow:hidden}
+.lift-outer{background:var(--bg);border:1px solid var(--border);border-radius:8px;height:130px;position:relative;overflow:hidden}
 .lift-inner{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#06f,#4a9eff);transition:height .15s}
-.sm-btn{padding:7px;background:#1a2030;border:1px solid #253040;border-radius:6px;color:#8090b0;cursor:pointer;touch-action:none;font-size:15px;text-align:center;flex:1}
+.sm-btn{padding:7px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--txt2);cursor:pointer;touch-action:none;font-size:15px;text-align:center;flex:1}
 .sm-btn:active,.sm-btn.on{background:#4a9eff;color:#000}
 
 /* Quick action buttons */
@@ -76,26 +211,26 @@ a.nav:hover{border-color:#4a9eff;color:#4a9eff}
 @keyframes qpulse{from{box-shadow:0 0 0 #f00}to{box-shadow:0 0 12px #f00}}
 
 /* 3D */
-#viewer{width:100%;height:320px;background:#070b12;border-radius:8px}
+#viewer{width:100%;height:320px;background:var(--bg);border-radius:8px}
 .arm-sel{display:flex;gap:4px;margin:8px 0 6px}
-.arm-tab{flex:1;padding:6px;background:#1a2030;border:1px solid #253040;border-radius:6px;cursor:pointer;text-align:center;font-size:12px;color:#6a7a95}
+.arm-tab{flex:1;padding:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;cursor:pointer;text-align:center;font-size:12px;color:var(--txt2)}
 .arm-tab.active{background:#4a9eff;color:#000}
 .arm-panel{display:none}.arm-panel.active{display:block}
 .jr{display:flex;align-items:center;gap:6px;padding:5px 4px;border-radius:6px;cursor:pointer}
-.jr:hover{background:#1a2030}.jr.sel{background:#0a2a45;border-left:2px solid #4a9eff;padding-left:6px}
+.jr:hover{background:var(--bg3)}.jr.sel{background:var(--bluelo);border-left:2px solid var(--blue);padding-left:6px}
 .jdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .jname{font-size:11px;color:#8090b0;min-width:88px}
 .jval{font-size:11px;color:#4a9eff;min-width:42px;text-align:right}
 .jbtns{margin-left:auto;display:flex;gap:3px}
-.jb{width:26px;height:26px;background:#1a2030;border:1px solid #253040;border-radius:5px;color:#8090b0;cursor:pointer;touch-action:none;font-size:14px}
+.jb{width:26px;height:26px;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--txt2);cursor:pointer;touch-action:none;font-size:14px}
 .jb:active,.jb.on{background:#4a9eff;color:#000}
 
 /* Map */
-#map-canvas{width:100%;height:400px;background:#070b12;border:1px solid #1e2535;border-radius:8px;cursor:crosshair;display:block}
+#map-canvas{width:100%;height:400px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:crosshair;display:block}
 .wp-list{max-height:200px;overflow-y:auto;margin-top:8px}
 .wp-item{display:flex;align-items:center;gap:8px;padding:5px 8px;background:#0d1018;border-radius:6px;margin-bottom:4px;font-size:12px}
 .wp-item.active{background:#0a2a45;border:1px solid #4a9eff}
-.btn{padding:8px 14px;border-radius:7px;border:1px solid #253040;background:#1a2030;color:#c8d0e0;cursor:pointer;font-size:12px;transition:.15s}
+.btn{padding:8px 14px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--txt);cursor:pointer;font-size:12px;transition:.15s}
 .btn:hover{border-color:#4a9eff;color:#4a9eff}
 .btn.primary{background:#0a2545;border-color:#4a9eff;color:#4a9eff}
 .btn.danger{background:#2a0d0d;border-color:#4a2020;color:#f66}
@@ -103,28 +238,62 @@ a.nav:hover{border-color:#4a9eff;color:#4a9eff}
 
 /* Inference */
 .infer-status{padding:12px;border-radius:8px;text-align:center;font-size:14px;margin-bottom:10px}
-.infer-status.idle{background:#1a2030;color:#6a7a95}
+.infer-status.idle{background:var(--bg3);color:var(--txt2)}
 .infer-status.running{background:#0a3520;color:#4f8;animation:pulse 1.5s infinite}
 @keyframes pulse{50%{opacity:.6}}
-input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c8d0e0;border-radius:6px;padding:8px;font-size:13px}
+input[type=text],input[type=number]{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--txt);border-radius:6px;padding:8px;font-size:13px}
 .speed-row{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:6px}
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <h1>🤖 AlohaMini</h1>
-  <span><span class="dot" id="dot"></span><span id="conn">Connecting…</span></span>
-  <span id="gp" style="color:#fa0;font-size:11px"></span>
-  <span id="arm-gp" style="color:#a0f0a0;font-size:11px"></span>
-  <span id="arm-side-top" style="font-size:11px;padding:2px 8px;border-radius:8px;background:#1a3050;color:#58a6ff;display:none"></span>
-  <span id="arm-status-nav" onclick="navToggleArm()"
-    style="font-size:11px;font-weight:700;padding:3px 12px;border-radius:8px;cursor:pointer;
-           background:#2a0808;border:1px solid #6a2020;color:#f08080;letter-spacing:.5px;
-           transition:all .2s;display:none" title="Click to ARM/DISARM robot">⚡ DISARMED</span>
-  <a class="nav" href="/arm_settings" style="margin-left:8px" title="PS4 / DualShock bindings">🕹️ PS4 Arms</a>
-  <a class="nav" href="/settings" style="margin-left:auto" title="RadioMaster bindings">🎮 RadioMaster</a>
-  <span class="nav" onclick="piShutdown()" style="cursor:pointer;color:#f08080;margin-left:8px" title="Shutdown Raspberry Pi">⏻ Pi</span>
+  <!-- Brand -->
+  <div class="topbar-brand">
+    <div class="logo-mark">🤖</div>
+    <div>
+      <h1>AlohaMini</h1>
+      <div class="model-tag">v3 · DUAL ARM</div>
+    </div>
+  </div>
+
+  <!-- Connection + Robot status -->
+  <div class="topbar-status">
+    <div class="status-pill">
+      <span class="dot" id="dot"></span>
+      <span id="conn" style="color:inherit">OFFLINE</span>
+    </div>
+    <div class="status-pill" id="lift-pill" style="color:var(--txt2)">
+      <span style="color:var(--txt3)">LIFT</span>
+      <span id="lift_v_nav" style="font-size:10px">—</span>
+      <span style="color:var(--txt3)">mm</span>
+    </div>
+    <div class="status-pill" id="spd-pill" style="color:var(--txt2)">
+      <span style="color:var(--txt3)">SPD</span>
+      <span id="spd_v_nav">0.30</span>
+      <span style="color:var(--txt3)">m/s</span>
+    </div>
+  </div>
+
+  <!-- Gamepads -->
+  <div class="topbar-gamepads">
+    <div class="gp-badge" id="gp" title="Base gamepad (RadioMaster)">NO RC</div>
+    <div class="gp-badge" id="arm-gp" title="Arm gamepad (PS4)">NO PAD</div>
+  </div>
+
+  <!-- ARM status -->
+  <div class="topbar-arm">
+    <span id="arm-status-nav" onclick="navToggleArm()" title="Click to ARM / DISARM">⚡ DISARMED</span>
+    <span id="arm-side-top"></span>
+  </div>
+
+  <!-- Nav links -->
+  <div class="topbar-nav">
+    <a class="nav" href="/arm_settings" title="PS4 arm bindings">PS4 Arms</a>
+    <a class="nav" href="/settings" title="RadioMaster bindings">RadioMaster</a>
+    <span class="nav" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark theme" style="font-size:14px">☀</span>
+    <span class="nav shutdown" onclick="piShutdown()" title="Shutdown Raspberry Pi">⏻ Pi</span>
+  </div>
 </div>
 
 <div class="tabs">
@@ -423,15 +592,22 @@ let _disarmed=false;
 function _updateArmStatusNav(disarmed){
   const el=document.getElementById('arm-status-nav');
   if(!el) return;
-  el.style.display='inline';
+  el.style.display='inline-block';
   if(disarmed){
     el.textContent='⚡ DISARMED';
-    el.style.background='#2a0808'; el.style.borderColor='#6a2020'; el.style.color='#f08080';
+    el.classList.remove('armed');
   } else {
-    el.textContent='✅ ARMED';
-    el.style.background='#082808'; el.style.borderColor='#206a20'; el.style.color='#80d080';
+    el.textContent='✦ ARMED';
+    el.classList.add('armed');
   }
 }
+
+function toggleTheme(){
+  const light=document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent=light?'🌙':'☀';
+  localStorage.setItem('theme',light?'light':'dark');
+}
+document.addEventListener('DOMContentLoaded',()=>{if(localStorage.getItem('theme')==='light'){document.body.classList.add('light');const b=document.getElementById('theme-btn');if(b)b.textContent='🌙';}});
 
 async function piShutdown(){
   if(!confirm('Выключить Raspberry Pi?')) return;
@@ -652,24 +828,31 @@ setInterval(async()=>{
   try{
     const d=await(await fetch('/status')).json();
     document.getElementById('dot').className='dot'+(d.connected?' ok':'');
-    document.getElementById('conn').innerText=d.connected?'Connected':'No robot';
-    document.getElementById('gp').innerText=d.gamepad!=='none'?'🎮 '+d.gamepad:'';
-    // Arm gamepad (PS4)
+    document.getElementById('conn').innerText=d.connected?'ONLINE':'OFFLINE';
+    document.getElementById('conn').style.color=d.connected?'var(--green)':'var(--red)';
+    // Base gamepad badge
+    const gpEl=document.getElementById('gp');
+    const gpName=(d.gamepad||'none');
+    gpEl.innerText=gpName!=='none'?gpName.replace(/radiomaster|pocket/gi,'RC').substring(0,18):'NO RC';
+    gpEl.classList.toggle('active',gpName!=='none');
+    // Arm gamepad badge
     const agp=document.getElementById('arm-gp');
     const ast=document.getElementById('arm-side-top');
     const agpName=d.arm_gamepad||'none';
-    agp.innerText=agpName!=='none'?'🕹️ '+agpName:'';
+    agp.innerText=agpName!=='none'?agpName.replace(/ps4|controller/gi,'').trim()||'PS4':'NO PAD';
+    agp.classList.toggle('active',agpName!=='none');
     if(agpName!=='none'){
       const side=d.arm_control_side||'left';
-      ast.innerText='ARM: '+side.toUpperCase();
-      ast.style.display='inline';
-      ast.style.background=side==='left'?'#1a3050':side==='right'?'#2d1a40':'#1a3028';
-      ast.style.color=side==='left'?'#58a6ff':side==='right'?'#bc8cff':'#3fb950';
+      ast.innerText=side.toUpperCase();
+      ast.style.display='inline-block';
     } else {ast.style.display='none';}
     const lh=d.lift||0;
     document.getElementById('lift_v').innerText=lh.toFixed(1);
     document.getElementById('lift_bar').style.height=Math.max(0,Math.min(100,lh/6))+'%';
     document.getElementById('spd_v').innerText=(d.speed||.3).toFixed(2)+' m/s';
+    // Navbar pills
+    const lvn=document.getElementById('lift_v_nav');if(lvn)lvn.innerText=lh.toFixed(0);
+    const svn=document.getElementById('spd_v_nav');if(svn)svn.innerText=(d.speed||.3).toFixed(2);
     // disarm state sync
     if(d.robot_disarmed!==undefined){
       _disarmed=d.robot_disarmed;
