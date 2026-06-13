@@ -118,6 +118,10 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
   <span id="gp" style="color:#fa0;font-size:11px"></span>
   <span id="arm-gp" style="color:#a0f0a0;font-size:11px"></span>
   <span id="arm-side-top" style="font-size:11px;padding:2px 8px;border-radius:8px;background:#1a3050;color:#58a6ff;display:none"></span>
+  <span id="arm-status-nav" onclick="navToggleArm()"
+    style="font-size:11px;font-weight:700;padding:3px 12px;border-radius:8px;cursor:pointer;
+           background:#2a0808;border:1px solid #6a2020;color:#f08080;letter-spacing:.5px;
+           transition:all .2s;display:none" title="Click to ARM/DISARM robot">⚡ DISARMED</span>
   <a class="nav" href="/arm_settings" style="margin-left:8px">🕹️ PS4 Arms</a>
   <a class="nav" href="/settings" style="margin-left:auto">🎮 Controller</a>
 </div>
@@ -193,6 +197,14 @@ input[type=text]{width:100%;background:#0a0d14;border:1px solid #253040;color:#c
       <button class="qbtn qbtn-side active-side" id="sq-left"  onclick="setSideQ('left')">Left</button>
       <button class="qbtn qbtn-side"              id="sq-right" onclick="setSideQ('right')">Right</button>
       <button class="qbtn qbtn-side"              id="sq-both"  onclick="setSideQ('both')">Both</button>
+      <!-- SA arm/disarm button binding -->
+      <div style="width:1px;height:28px;background:#1e2535;margin:0 4px"></div>
+      <span style="font-size:11px;color:#4a6080" title="RadioMaster SA switch button index (default 6)">SA btn#</span>
+      <input id="sa-btn-input" type="number" min="0" max="31" value="6"
+        style="width:46px;background:#0d1117;border:1px solid #2a3a55;color:#c8d0e0;border-radius:5px;
+               padding:3px 6px;font-size:12px;text-align:center"
+        title="Button index for SA arm/disarm switch on RadioMaster"
+        onchange="setSaBtn(this.value)">
     </div>
   </div>
   <div class="grid2">
@@ -392,19 +404,53 @@ buildPanel('left');buildPanel('right');
 
 // ── Arm quick actions ─────────────────────────────────────────────────────────
 let _disarmed=false;
+
+function _updateArmStatusNav(disarmed){
+  const el=document.getElementById('arm-status-nav');
+  if(!el) return;
+  el.style.display='inline';
+  if(disarmed){
+    el.textContent='⚡ DISARMED';
+    el.style.background='#2a0808'; el.style.borderColor='#6a2020'; el.style.color='#f08080';
+  } else {
+    el.textContent='✅ ARMED';
+    el.style.background='#082808'; el.style.borderColor='#206a20'; el.style.color='#80d080';
+  }
+}
+
+async function navToggleArm(){
+  if(_disarmed){ await armRearm(); } else { await armDisarm(); }
+}
+
 async function armDisarm(){
   if(!confirm('Дизармировать ВЕСЬ робот? Все моторы станут вялыми.')) return;
   await fetch('/arm/disarm',{method:'POST'});
   _disarmed=true;
   document.getElementById('disarm-btn').style.display='none';
   document.getElementById('rearm-btn').style.display='';
+  _updateArmStatusNav(true);
 }
 async function armRearm(){
   await fetch('/arm/rearm',{method:'POST'});
   _disarmed=false;
   document.getElementById('rearm-btn').style.display='none';
   document.getElementById('disarm-btn').style.display='';
+  _updateArmStatusNav(false);
 }
+
+async function setSaBtn(val){
+  const n=parseInt(val);
+  if(isNaN(n)||n<0||n>31) return;
+  const b=await(await fetch('/bindings')).json();
+  b.sa_arm_btn=n;
+  await fetch('/bindings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+}
+
+// Load current SA btn value on startup
+fetch('/bindings').then(r=>r.json()).then(b=>{
+  const el=document.getElementById('sa-btn-input');
+  if(el&&b.sa_arm_btn!==undefined) el.value=b.sa_arm_btn;
+}).catch(()=>{});
 async function armPreset(name){
   if(_disarmed){alert('Робот дизармован — сначала нажми ARM ROBOT'); return;}
   await fetch('/arm/preset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({preset:name})});
@@ -607,6 +653,7 @@ setInterval(async()=>{
       _disarmed=d.robot_disarmed;
       document.getElementById('disarm-btn').style.display=_disarmed?'none':'';
       document.getElementById('rearm-btn').style.display=_disarmed?'':'none';
+      _updateArmStatusNav(_disarmed);
     }
     // side buttons
     syncSideButtons(d.arm_control_side||'left');
