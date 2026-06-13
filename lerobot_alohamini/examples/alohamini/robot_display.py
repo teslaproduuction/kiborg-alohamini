@@ -38,9 +38,7 @@ threading.Thread(target=_init_zmq, daemon=True).start()
 
 STOP_ACTION = {
     "x.vel": 0.0, "y.vel": 0.0, "theta.vel": 0.0,
-    "lift_axis.height_mm": 0.0,
-    **{f"arm_left_{j}.pos": 0.0  for j in ["shoulder_pan","shoulder_lift","elbow_flex","wrist_flex","wrist_roll","gripper"]},
-    **{f"arm_right_{j}.pos": 0.0 for j in ["shoulder_pan","shoulder_lift","elbow_flex","wrist_flex","wrist_roll","gripper"]},
+    "__disarm_robot": True,
     "__estop": True,
 }
 
