@@ -68,6 +68,11 @@ def main():
         action="store_true",
         help="Do not connect follower arms, only operate the base and lift. Use together with --no_leader on the teleoperate side.",
     )
+    parser.add_argument(
+        "--no_right",
+        action="store_true",
+        help="Skip right arm — useful when right arm Waveshare is not connected.",
+    )
     args = parser.parse_args()
 
     logging.info("Configuring LeKiwi")
@@ -75,8 +80,11 @@ def main():
     robot_config.id = "AlohaMiniRobot"
     robot_config.robot_model = args.robot_model
     robot_config.no_follower = args.no_follower
+    robot_config.no_right = args.no_right
     if args.no_follower:
         logging.info("no_follower mode: follower arms will not connect, only base and lift operate.")
+    if args.no_right:
+        logging.info("no_right mode: right arm will not connect.")
     robot = LeKiwi(robot_config)
 
 
