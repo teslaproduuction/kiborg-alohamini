@@ -236,11 +236,15 @@ def obs_loop():
             obs = json.loads(obs_sock.recv().decode())
             with lock:
                 state["lift_height"] = obs.get("lift_axis.height_mm", state["lift_height"])
-                for j in ARM_JOINTS:
-                    v = obs.get(f"arm_left_{j}.pos");
-                    if v is not None: state["arm_left"][j] = v
-                    v = obs.get(f"arm_right_{j}.pos")
-                    if v is not None: state["arm_right"][j] = v
+                # Only sync arm positions from observations when DISARMED.
+                # When ARMED: controller's own state is authoritative (avoids
+                # motor-noise → command → motor feedback loop that causes jitter).
+                if state["robot_disarmed"]:
+                    for j in ARM_JOINTS:
+                        v = obs.get(f"arm_left_{j}.pos")
+                        if v is not None: state["arm_left"][j] = v
+                        v = obs.get(f"arm_right_{j}.pos")
+                        if v is not None: state["arm_right"][j] = v
                 # Cameras
                 cam_names = []
                 for k, v in obs.items():
