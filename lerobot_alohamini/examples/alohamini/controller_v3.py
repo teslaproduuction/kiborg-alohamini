@@ -109,10 +109,10 @@ DEFAULT_ARM_BINDINGS = {
     "device_index": 1,          # second connected gamepad (auto-detected by name if possible)
     "arm_speed":    0.6,        # deg/frame — lower = smoother, raise in /arm_settings
     "axes": {
-        "0": {"joint":"shoulder_pan",  "invert":False,"deadzone":0.18,"scale":1.0},
-        "1": {"joint":"shoulder_lift", "invert":True, "deadzone":0.18,"scale":1.0},
-        "2": {"joint":"elbow_flex",    "invert":False,"deadzone":0.18,"scale":1.0},
-        "3": {"joint":"wrist_flex",    "invert":True, "deadzone":0.18,"scale":1.0},
+        "0": {"joint":"shoulder_pan",  "invert":False,"deadzone":0.25,"scale":1.0},
+        "1": {"joint":"shoulder_lift", "invert":True, "deadzone":0.25,"scale":1.0},
+        "2": {"joint":"elbow_flex",    "invert":False,"deadzone":0.25,"scale":1.0},
+        "3": {"joint":"wrist_flex",    "invert":True, "deadzone":0.25,"scale":1.0},
     },
     "trigger_l2": 4,    # L2 → wrist_roll negative
     "trigger_r2": 5,    # R2 → wrist_roll positive
