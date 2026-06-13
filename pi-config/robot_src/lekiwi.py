@@ -777,9 +777,15 @@ class LeKiwi(Robot):
                 try: self.right_bus.enable_torque(self.right_arm_motors)
                 except Exception as e: print(f"[arm right] {e}")
             if self.base_bus:
-                try: self.base_bus.enable_torque()    # wheels + lift
+                try: self.base_bus.enable_torque()
                 except Exception as e: print(f"[arm base] {e}")
             print("[lekiwi] WHOLE ROBOT ARMED")
+            return {}
+        if action.get("__arm_base"):
+            if self.base_bus:
+                try: self.base_bus.enable_torque()
+                except Exception as e: print(f"[arm base only] {e}")
+            print("[lekiwi] BASE ONLY ARMED")
             return {}
 
         left_pos  = {k: v for k, v in action.items() if k.endswith(".pos") and k.startswith("arm_left_") and k.replace(".pos", "") in self.left_bus.motors}

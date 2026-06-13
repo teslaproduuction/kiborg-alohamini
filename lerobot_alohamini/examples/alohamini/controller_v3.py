@@ -425,6 +425,7 @@ _SIDE_CYCLE = ["left", "right", "both"]
 def gamepad_loop():
     pygame.init(); pygame.joystick.init()
     last_btns = {}; arm_last_btns = {}; last_count = -1; last_sa_armed = None
+    last_both_triggers = False
     while True:
         pygame.joystick.quit(); pygame.joystick.init()
         count = pygame.joystick.get_count()
@@ -512,6 +513,30 @@ def gamepad_loop():
                         else:
                             print("[SA] → DISARMED")
                             threading.Thread(target=_do_disarm, daemon=True).start()
+
+                    # Both triggers pressed → ARM (rising edge only)
+                    # If PS4 not connected: arm base only; if PS4 connected: full arm
+                    trig_l = any(
+                        abs(apply_dz(float(axes.get(ai,0)), cfg.get("deadzone",.1))) > 0.5
+                        for ai,cfg in bindings.get("axes",{}).items()
+                        if cfg.get("action") == "arm_left"
+                    )
+                    trig_r = any(
+                        abs(apply_dz(float(axes.get(ai,0)), cfg.get("deadzone",.1))) > 0.5
+                        for ai,cfg in bindings.get("axes",{}).items()
+                        if cfg.get("action") == "arm_right"
+                    )
+                    both_now = trig_l and trig_r
+                    if both_now and not last_both_triggers:
+                        with lock: disarmed = state["robot_disarmed"]
+                        if disarmed:
+                            if joy_arm:
+                                print("[Triggers] both pressed + PS4 connected → FULL ARM")
+                                threading.Thread(target=_do_arm, daemon=True).start()
+                            else:
+                                print("[Triggers] both pressed, no PS4 → BASE ONLY ARM")
+                                threading.Thread(target=_do_arm_base_only, daemon=True).start()
+                    last_both_triggers = both_now
 
                 # ── Arm gamepad (PS4) ─────────────────────────────────────
                 if joy_arm:
@@ -775,6 +800,18 @@ def _do_arm():
     with lock: state["robot_disarmed"] = False
     with lock: lh = state["lift_height"]
     payload = json.dumps({"__arm_robot": True,
+                          "x.vel":0,"y.vel":0,"theta.vel":0,
+                          "lift_axis.height_mm": lh}).encode()
+    for _ in range(8):
+        try: cmd_sock.send(payload)
+        except: pass
+        time.sleep(0.03)
+
+def _do_arm_base_only():
+    """Arm base+lift only — used when PS4 not connected (arms stay disarmed)."""
+    with lock: state["robot_disarmed"] = False
+    with lock: lh = state["lift_height"]
+    payload = json.dumps({"__arm_base": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
                           "lift_axis.height_mm": lh}).encode()
     for _ in range(8):
