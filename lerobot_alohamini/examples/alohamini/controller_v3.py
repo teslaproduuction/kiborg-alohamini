@@ -55,7 +55,7 @@ state = {
     "arm_gamepad_axes": {},
     "arm_gamepad_buttons": {},
     "arm_control_side": "left",   # "left" | "right" | "both"
-    "robot_disarmed":   False,
+    "robot_disarmed":   True,   # start DISARMED — requires explicit arm action
     "connected":        False,
     # Cameras: name → base64 jpeg
     "cameras":        {},
