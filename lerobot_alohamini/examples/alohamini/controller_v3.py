@@ -450,6 +450,13 @@ def gamepad_loop():
             for i, n in enumerate(all_names):
                 if any(k in n for k in _BASE_KEYWORDS): base_idx = i
                 if any(k in n for k in _ARM_KEYWORDS):  arm_idx_auto = i
+            # If arm wasn't matched by name — fallback to first non-base device
+            if arm_idx_auto == base_idx:
+                for i in range(count):
+                    if i != base_idx:
+                        arm_idx_auto = i
+                        print(f"[ArmGamepad] name-match failed, fallback to idx={i}: {all_names[i]!r}")
+                        break
 
         joy_base = None
         if count > base_idx:
