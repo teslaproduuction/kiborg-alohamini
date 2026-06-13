@@ -420,12 +420,10 @@ function doEstop(e){
 //  MAIN LOOP
 // ─────────────────────────────────────────────────────────────────────────────
 let last=0;
-const TARGET_FPS=20, FRAME_MS=1000/TARGET_FPS;
 function lerp(a,b,t){return a+(b-a)*t;}
 
 function loop(now){
   requestAnimationFrame(loop);
-  if(now-last < FRAME_MS) return;
   const dt=Math.min(now-last,50); last=now;
 
   // hue drift
