@@ -125,10 +125,17 @@ def main():
                     f"Command not received for more than {host.watchdog_timeout_ms} milliseconds. Stopping the base."
                 )
                 watchdog_active = True
-                robot.stop_base()
+                try:
+                    robot.stop_base()
+                except Exception as e:
+                    logging.warning(f"stop_base failed: {e}")
 
             
-            last_observation = robot.get_observation()
+            try:
+                last_observation = robot.get_observation()
+            except Exception as e:
+                logging.warning(f"get_observation failed (serial/bus error?): {e}")
+                last_observation = {}
 
             # Encode ndarrays to base64 strings
             for cam_key, _ in robot.cameras.items():
