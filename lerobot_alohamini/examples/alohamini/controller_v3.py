@@ -172,8 +172,8 @@ load_arm_bindings()
 ARM_PRESETS = {
     # flat rest: everything at neutral
     "home": {"shoulder_pan":0, "shoulder_lift":0, "elbow_flex":0, "wrist_flex":0, "wrist_roll":0, "gripper":0},
-    # ready/observation: arms slightly raised and bent forward
-    "ready": {"shoulder_pan":0, "shoulder_lift":25, "elbow_flex":-45, "wrist_flex":20, "wrist_roll":0, "gripper":20},
+    # ready/observation: raise arms to working position, shoulder_pan stays wherever it is
+    "ready": {"shoulder_lift":25, "elbow_flex":-45, "wrist_flex":20, "wrist_roll":0, "gripper":20},
     # gripper actions only
     "gripper_open":  {"gripper": 80},
     "gripper_close": {"gripper":-60},
@@ -446,7 +446,7 @@ def gamepad_loop():
 
         # Detect gamepads by name — RadioMaster=base, Sony/DualShock=arms
         # Falls back to index if names don't match
-        _BASE_KEYWORDS = ("radiomaster","opentx","frsky","tx16","tx12","boxer","pocket","expresslrs","elrs")
+        _BASE_KEYWORDS = ("radiomaster","opentx","frsky","tx16","tx12","boxer","pocket","expresslrs","express lrs","elrs")
         _ARM_KEYWORDS  = ("sony","dualshock","dualsense","playstation","wireless controller","ps4","ps5")
         all_names = [pygame.joystick.Joystick(i).get_name().lower() for i in range(count)]
         print(f"[Gamepad] devices: {all_names}")
