@@ -898,7 +898,7 @@ def pi_shutdown():
             "plink", "-ssh", "-pw", "raspberry",
             f"pi@{REMOTE_IP}",
             "-hostkey", "ssh-ed25519 255 SHA256:379wK41H1NB4mUdnfa9RPq9gvqulKc2rI1eqm4B/QF0",
-            "-batch", "sudo shutdown -h now"
+            "-batch", "killall -q -SIGINT python python3; sleep 2; sudo shutdown -h now"
         ])
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 500
