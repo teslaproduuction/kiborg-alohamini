@@ -405,10 +405,19 @@ input[type=text],input[type=number]{width:100%;background:var(--bg);border:1px s
       </div>
       <canvas id="map-canvas" style="border-radius:6px;border:1px solid var(--border)"></canvas>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <button class="btn go" onclick="wp('start')" title="Start route navigation">▶ Run Route</button>
+        <button class="btn go" onclick="wp('start')" title="Start route navigation">▶ Run</button>
         <button class="btn" onclick="wp('stop')" title="Pause navigation">⏸ Pause</button>
-        <button class="btn danger" onclick="wp('clear')" title="Remove all waypoints">🗑 Clear All</button>
-        <button class="btn" onclick="wp('reset_odom')" title="Reset odometry to 0,0,0">⌖ Reset Odom</button>
+        <button class="btn danger" onclick="wp('clear')" title="Remove all waypoints">🗑 Clear</button>
+        <button class="btn" onclick="wp('reset_odom')" title="Reset odometry to 0,0,0">⌖ Odom</button>
+        <div style="width:1px;background:var(--border);height:28px;margin:0 2px"></div>
+        <input id="route-name" type="text" placeholder="route name"
+          style="width:100px;padding:4px 8px;border-radius:5px;border:1px solid var(--border2);
+                 background:var(--bg);color:var(--txt);font-size:12px">
+        <button class="btn" onclick="saveRoute()" title="Save current waypoints">💾 Save</button>
+        <select id="route-sel" style="background:var(--bg);border:1px solid var(--border2);color:var(--txt);
+          border-radius:5px;padding:3px 6px;font-size:12px" onchange="loadRoute(this.value)">
+          <option value="">Load route…</option>
+        </select>
       </div>
     </div>
     <div class="card">
@@ -762,6 +771,28 @@ _mapCanvas.addEventListener('contextmenu',e=>{
     fetch('/waypoints',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear'})});
 });
 function wp(action){fetch('/waypoints',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});}
+async function saveRoute(){
+  const name=(document.getElementById('route-name').value||'route').trim();
+  await fetch('/waypoints',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'save',name})});
+  refreshRoutes();
+}
+async function loadRoute(name){
+  if(!name)return;
+  await fetch('/waypoints',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'load',name})});
+  document.getElementById('route-sel').value='';
+}
+async function refreshRoutes(){
+  try{
+    const list=await(await fetch('/routes')).json();
+    const sel=document.getElementById('route-sel');
+    if(!sel)return;
+    sel.innerHTML='<option value="">Load route…</option>'+
+      list.map(r=>`<option value="${r}">${r}</option>`).join('');
+  }catch(e){}
+}
+refreshRoutes();
 
 // ── Inference ─────────────────────────────────────────────────────────────────
 function infer(action){

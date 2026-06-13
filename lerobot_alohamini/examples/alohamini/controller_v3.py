@@ -33,7 +33,7 @@ cmd_sock = ctx.socket(zmq.PUSH)
 cmd_sock.connect(f"tcp://{REMOTE_IP}:{CMD_PORT}")
 obs_sock = ctx.socket(zmq.PULL)
 obs_sock.connect(f"tcp://{REMOTE_IP}:{OBS_PORT}")
-obs_sock.setsockopt(zmq.RCVTIMEO, 80)
+obs_sock.setsockopt(zmq.RCVTIMEO, 200)  # 200ms — Pi sends at 30fps, allow camera delays
 
 ARM_JOINTS = ["shoulder_pan","shoulder_lift","elbow_flex","wrist_flex","wrist_roll","gripper"]
 REC_DIR = Path(__file__).parent / "recordings"
@@ -958,6 +958,9 @@ def set_bindings():
 def reset_bindings():
     global bindings; bindings=json.loads(json.dumps(DEFAULT_BINDINGS)); save_bindings(); return jsonify(bindings)
 
+ROUTES_DIR = Path(__file__).parent / "routes"
+ROUTES_DIR.mkdir(exist_ok=True)
+
 @app.route('/waypoints', methods=['POST'])
 def waypoints_api():
     d=request.json; action=d.get('action')
@@ -972,7 +975,23 @@ def waypoints_api():
             state["waypoint_active"]=False
         elif action=='reset_odom':
             state["odom"]={"x":0,"y":0,"theta":0}
+        elif action=='save':
+            name = d.get('name','route').strip() or 'route'
+            data = {"name": name, "waypoints": state["waypoints"]}
+            (ROUTES_DIR / f"{name}.json").write_text(json.dumps(data, indent=2))
+        elif action=='load':
+            name = d.get('name','').strip()
+            f = ROUTES_DIR / f"{name}.json"
+            if f.exists():
+                data = json.loads(f.read_text())
+                state["waypoints"] = data.get("waypoints", [])
+                state["waypoint_active"] = False; state["waypoint_idx"] = 0
     return jsonify(ok=True)
+
+@app.route('/routes', methods=['GET'])
+def list_routes():
+    routes = [f.stem for f in sorted(ROUTES_DIR.glob("*.json"))]
+    return jsonify(routes)
 
 @app.route('/record', methods=['POST'])
 def record_api():
