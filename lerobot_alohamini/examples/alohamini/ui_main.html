@@ -365,14 +365,28 @@ function buildArm(side,xoff){
 function poseArm(side){
   const v=armVals[side],s=armMeshes[side];if(!s||!s.length)return;
   const r=d=>d*Math.PI/180*.9;
-  s[0].pivot.rotation.y=r(v.shoulder_pan||0);
-  s[1].pivot.rotation.z=-r(v.shoulder_lift||0);
-  s[2].pivot.rotation.z=-r(v.elbow_flex||0);
-  s[3].pivot.rotation.z=-r(v.wrist_flex||0);
-  s[4].pivot.rotation.y=r(v.wrist_roll||0);
-  s[5].mesh.scale.y=.5+.5*(100-(v.gripper||0))/100;
+  s[0].pivot.rotation.y= r(v.shoulder_pan||0);   // pan: rotate around Y (horizontal spin)
+  s[1].pivot.rotation.x= r(v.shoulder_lift||0);  // lift: rotate around X (forward/backward)
+  s[2].pivot.rotation.x= r(v.elbow_flex||0);     // elbow: forward/backward
+  s[3].pivot.rotation.x= r(v.wrist_flex||0);     // wrist: forward/backward
+  s[4].pivot.rotation.y= r(v.wrist_roll||0);     // roll: twist around Y
+  s[5].mesh.scale.y=Math.max(0.3, 0.5+0.5*(100-(v.gripper||0))/100);
 }
 function animate(){requestAnimationFrame(animate);poseArm('left');poseArm('right');renderer.render(scene,camera);}
+
+// Fast poll for 3D arm animation (100ms) — separate from slow 500ms status poll
+setInterval(async()=>{
+  if(!window._three) return;
+  try{
+    const d=await(await fetch('/status')).json();
+    if(d.arms){
+      ['left','right'].forEach(side=>JOINTS.forEach(j=>{
+        const v=d.arms[side]?.[j];
+        if(v!==undefined){ armVals[side][j]=v; const el=document.getElementById(`jv_${side}_${j}`); if(el) el.innerText=v.toFixed(0)+'°'; }
+      }));
+    }
+  }catch(e){}
+},100);
 
 // ── Joint panels ────────────────────────────────────────────────────────────
 function buildPanel(side){
