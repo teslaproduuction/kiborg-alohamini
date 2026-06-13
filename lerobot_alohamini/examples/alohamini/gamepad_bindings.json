@@ -23,7 +23,7 @@
     },
     "3": {
       "action": "lift",
-      "deadzone": 0.1,
+      "deadzone": 0.30,
       "invert": false,
       "label": "Right Y",
       "scale": 1

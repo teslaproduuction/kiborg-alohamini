@@ -56,6 +56,7 @@ state = {
     "arm_gamepad_buttons": {},
     "arm_control_side": "left",   # "left" | "right" | "both"
     "robot_disarmed":   True,   # start DISARMED — requires explicit arm action
+    "arm_hold_until":   0.0,    # timestamp: suppress arm position cmds until then
     "connected":        False,
     # Cameras: name → base64 jpeg
     "cameras":        {},
@@ -85,7 +86,7 @@ DEFAULT_BINDINGS = {
         "0": {"action":"y_vel",    "scale":1.0,"deadzone":0.10,"invert":False,"label":"Left Gimbal X"},
         "1": {"action":"x_vel",    "scale":1.0,"deadzone":0.10,"invert":False,"label":"Left Gimbal Y"},
         "2": {"action":"theta_vel","scale":1.0,"deadzone":0.10,"invert":False,"label":"Right Gimbal X"},
-        "3": {"action":"lift",     "scale":1.0,"deadzone":0.10,"invert":False,"label":"Right Gimbal Y"},
+        "3": {"action":"lift",     "scale":1.0,"deadzone":0.30,"invert":False,"label":"Right Gimbal Y"},
         "4": {"action":"arm_left", "scale":1.0,"deadzone":0.05,"invert":False,"label":"Left Wheel"},
         "5": {"action":"arm_right","scale":1.0,"deadzone":0.05,"invert":False,"label":"Right Wheel"},
     },
@@ -200,18 +201,22 @@ def smooth_move(sides, target: dict, steps=40, duration=1.5):
 # ── Action builder ────────────────────────────────────────────────────────────
 def build_action():
     with lock:
-        lh       = state["lift_height"]
-        bc       = state["base_cmd"]
-        left     = dict(state["arm_left"])
-        right    = dict(state["arm_right"])
-        disarmed = state["robot_disarmed"]
+        lh         = state["lift_height"]
+        bc         = state["base_cmd"]
+        left       = dict(state["arm_left"])
+        right      = dict(state["arm_right"])
+        disarmed   = state["robot_disarmed"]
+        hold_until = state["arm_hold_until"]
+        connected  = state["connected"]
     action = {
         "x.vel": bc["x"], "y.vel": bc["y"], "theta.vel": bc["theta"],
         "lift_axis.height_mm": lh,
     }
     if disarmed:
-        # Keep sending disarm key so lekiwi_host keeps torque disabled
         action["__disarm_robot"] = True
+    elif time.time() < hold_until or not connected:
+        # Just armed: wait for obs to sync real positions before commanding
+        pass  # send only base/lift, no arm positions yet
     else:
         for j in ARM_JOINTS:
             action[f"arm_left_{j}.pos"]  = left[j]
@@ -522,9 +527,13 @@ def gamepad_loop():
                     sa_pressed = bool(btns.get(sa_btn, False))
                     if sa_pressed != last_sa_armed:
                         last_sa_armed = sa_pressed
+                        with lock: conn = state["connected"]
                         if sa_pressed:
-                            print("[SA] → ARMED")
-                            threading.Thread(target=_do_arm, daemon=True).start()
+                            if conn:
+                                print("[SA] → ARMED")
+                                threading.Thread(target=_do_arm, daemon=True).start()
+                            else:
+                                print("[SA] → ARMED (no robot, skipped)")
                         else:
                             print("[SA] → DISARMED")
                             threading.Thread(target=_do_disarm, daemon=True).start()
@@ -821,7 +830,9 @@ def _do_disarm():
 
 def _do_arm():
     """Re-enable torque on whole robot (background-safe)."""
-    with lock: state["robot_disarmed"] = False
+    with lock:
+        state["robot_disarmed"] = False
+        state["arm_hold_until"] = time.time() + 0.4  # 400ms: let obs sync position
     with lock: lh = state["lift_height"]
     payload = json.dumps({"__arm_robot": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
@@ -833,7 +844,9 @@ def _do_arm():
 
 def _do_arm_side(side: str):
     """Arm one arm only: side='left' or 'right'."""
-    with lock: state["robot_disarmed"] = False
+    with lock:
+        state["robot_disarmed"] = False
+        state["arm_hold_until"] = time.time() + 0.4
     with lock: lh = state["lift_height"]
     key = f"__arm_{side}"
     payload = json.dumps({key: True, "x.vel":0,"y.vel":0,"theta.vel":0,
@@ -845,7 +858,9 @@ def _do_arm_side(side: str):
 
 def _do_arm_base_only():
     """Arm base+lift only — used when PS4 not connected (arms stay disarmed)."""
-    with lock: state["robot_disarmed"] = False
+    with lock:
+        state["robot_disarmed"] = False
+        state["arm_hold_until"] = time.time() + 0.4
     with lock: lh = state["lift_height"]
     payload = json.dumps({"__arm_base": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
