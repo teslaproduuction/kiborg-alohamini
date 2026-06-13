@@ -55,8 +55,9 @@ state = {
     "arm_gamepad_axes": {},
     "arm_gamepad_buttons": {},
     "arm_control_side": "left",   # "left" | "right" | "both"
-    "robot_disarmed":   True,   # start DISARMED — requires explicit arm action
-    "arm_hold_until":   0.0,    # timestamp: suppress arm position cmds until then
+    "robot_disarmed":   True,   # drives __disarm_robot command to Pi
+    "arms_armed":       False,  # only True when arm motors explicitly armed
+    "arm_hold_until":   0.0,    # timestamp: suppress arm cmds after arming
     "connected":        False,
     # Cameras: name → base64 jpeg
     "cameras":        {},
@@ -206,6 +207,7 @@ def build_action():
         left       = dict(state["arm_left"])
         right      = dict(state["arm_right"])
         disarmed   = state["robot_disarmed"]
+        arms_armed = state["arms_armed"]
         hold_until = state["arm_hold_until"]
         connected  = state["connected"]
     action = {
@@ -214,13 +216,11 @@ def build_action():
     }
     if disarmed:
         action["__disarm_robot"] = True
-    elif time.time() < hold_until or not connected:
-        # Just armed: wait for obs to sync real positions before commanding
-        pass  # send only base/lift, no arm positions yet
-    else:
+    elif arms_armed and time.time() > hold_until and connected:
         for j in ARM_JOINTS:
             action[f"arm_left_{j}.pos"]  = left[j]
             action[f"arm_right_{j}.pos"] = right[j]
+    # else: base/lift only — arms not armed or hold window still active
     return action
 
 # ── Odometry update ───────────────────────────────────────────────────────────
@@ -818,7 +818,9 @@ def arm_side():
 
 def _do_disarm():
     """Disable torque on whole robot (background-safe, called from gamepad or HTTP)."""
-    with lock: state["robot_disarmed"] = True
+    with lock:
+        state["robot_disarmed"] = True
+        state["arms_armed"] = False
     with lock: lh = state["lift_height"]
     payload = json.dumps({"__disarm_robot": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
@@ -832,7 +834,8 @@ def _do_arm():
     """Re-enable torque on whole robot (background-safe)."""
     with lock:
         state["robot_disarmed"] = False
-        state["arm_hold_until"] = time.time() + 0.4  # 400ms: let obs sync position
+        state["arms_armed"] = True
+        state["arm_hold_until"] = time.time() + 0.4
     with lock: lh = state["lift_height"]
     payload = json.dumps({"__arm_robot": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
@@ -846,6 +849,7 @@ def _do_arm_side(side: str):
     """Arm one arm only: side='left' or 'right'."""
     with lock:
         state["robot_disarmed"] = False
+        state["arms_armed"] = True
         state["arm_hold_until"] = time.time() + 0.4
     with lock: lh = state["lift_height"]
     key = f"__arm_{side}"
@@ -857,10 +861,11 @@ def _do_arm_side(side: str):
         time.sleep(0.03)
 
 def _do_arm_base_only():
-    """Arm base+lift only — used when PS4 not connected (arms stay disarmed)."""
+    """Arm base+lift only — arms stay disarmed (no arm position commands sent)."""
     with lock:
         state["robot_disarmed"] = False
-        state["arm_hold_until"] = time.time() + 0.4
+        state["arms_armed"] = False  # arms NOT armed — no position commands
+        state["arm_hold_until"] = 0.0
     with lock: lh = state["lift_height"]
     payload = json.dumps({"__arm_base": True,
                           "x.vel":0,"y.vel":0,"theta.vel":0,
