@@ -426,7 +426,7 @@ function lerp(a,b,t){return a+(b-a)*t;}
 function loop(now){
   requestAnimationFrame(loop);
   if(now-last < FRAME_MS) return;
-  const dt=Math.min(now-last,80); last=now;
+  const dt=Math.min(now-last,50); last=now;
 
   // hue drift
   if(S.mood==='ai') S.hue=(S.hue+S.hueSpeed*dt*.1)%360;
