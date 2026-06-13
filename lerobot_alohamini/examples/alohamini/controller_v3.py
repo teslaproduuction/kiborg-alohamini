@@ -504,10 +504,9 @@ def gamepad_loop():
                         elif act=="y_vel": ny=v*sp
                         elif act=="theta_vel": nth=v*rs
                         elif act=="lift" and abs(v)>.05: nlh=max(0,lh-v*3)
-                        elif act in("arm_left","arm_right") and abs(v)>.05:
-                            j=ARM_JOINTS[sel]; side="arm_left" if act=="arm_left" else "arm_right"
-                            with lock: state[side][j]=max(-100,min(100,state[side][j]+v*2))
+                        elif act in("arm_left","arm_right"):
                             # triggers: rest=-1.0, fully pressed=+1.0; normalize to 0..1
+                            # Only used for arm/disarm threshold — do NOT write joint deltas here
                             normed = (float(axes.get(ai,0)) + 1.0) / 2.0
                             if act=="arm_left": trig_l_val=max(trig_l_val, normed)
                             else:               trig_r_val=max(trig_r_val, normed)
