@@ -36,11 +36,17 @@
       "scale": 1
     },
     "5": {
-      "action": "arm_right",
+      "action": "none",
       "deadzone": 0.05,
       "invert": false,
       "label": "R Trigger",
       "scale": 1
+    },
+    "6": {
+      "action": "arm_right",
+      "scale": 1,
+      "deadzone": 0.1,
+      "invert": false
     }
   },
   "buttons": {
@@ -77,7 +83,6 @@
       "label": "SB"
     }
   },
-  "sa_arm_btn": 6,
   "key_map": {
     "a": "theta+",
     "d": "theta-",
@@ -89,5 +94,6 @@
     "w": "x_vel+",
     "x": "y_vel-",
     "z": "y_vel+"
-  }
+  },
+  "sa_arm_btn": 6
 }
