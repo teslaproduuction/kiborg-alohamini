@@ -6,7 +6,7 @@ import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import zmq
 
-REMOTE_IP = "192.168.31.170"
+REMOTE_IP = "172.24.93.157"
 CMD_PORT = 5555
 OBS_PORT = 5556
 WEB_PORT = 8080

@@ -17,3 +17,9 @@ __pycache__/
 # Внутренности вложенных репозиториев (попадали при шелвинге)
 .git_shelved/
 **/.git_shelved/
+
+# Sensitive — network credentials, backups, local secrets
+pi-config/network/50-cloud-init.yaml
+pi-backup/
+.env
+*.env.local

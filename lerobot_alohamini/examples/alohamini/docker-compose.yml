@@ -15,7 +15,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      ROBOT_IP: "${ROBOT_IP:-192.168.31.170}"
+      ROBOT_IP: "${ROBOT_IP:-172.24.93.157}"
       CMD_PORT: "5555"
       OBS_PORT: "5556"
       WEB_PORT: "8080"

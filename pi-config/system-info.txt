@@ -1,8 +1,7 @@
 Pi hostname:    Pi
 OS:             Ubuntu 24.04.4 LTS (Noble Numbat)
 Kernel:         6.8.0-1047-raspi (arm64)
-IP (wlan0):     192.168.31.170/24
-MAC (wlan0):    2c:cf:67:ce:6c:01
+IP (wlan0):     <configured via DHCP — see router or `hostname -I` on Pi>
 Python env:     miniforge3/envs/lerobot  (Python 3.12.13)
 lerobot fork:   https://github.com/liyiteng/lerobot_alohamini
                 commit 7d58e46f344f210350d8d1c13d7f84483db41110

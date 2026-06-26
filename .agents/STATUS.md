@@ -136,8 +136,8 @@ _Обновлено: 2026-06-13 (ночь)_
 
 ## 📡 Сеть
 
-- Pi IP: 192.168.31.170 (pi / raspberry)
-- ZMQ cmd: tcp://192.168.31.170:5555
-- ZMQ obs: tcp://192.168.31.170:5556
+- Pi IP: set via `ROBOT_IP` env var (default in controller_v3.py)
+- ZMQ cmd: `tcp://<ROBOT_IP>:5555`
+- ZMQ obs: `tcp://<ROBOT_IP>:5556`
 - Веб контроллер: http://localhost:8080
-- Камера сервер: http://192.168.31.170:8091
+- Камера сервер: `http://<ROBOT_IP>:8091`

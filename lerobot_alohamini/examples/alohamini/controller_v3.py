@@ -14,7 +14,7 @@ import pygame
 from flask import Flask, request, jsonify, Response, send_from_directory
 
 # ── Config (env-overridable for Docker) ──────────────────────────────────────
-REMOTE_IP  = os.environ.get("ROBOT_IP", "192.168.31.170")
+REMOTE_IP  = os.environ.get("ROBOT_IP", "172.24.93.157")
 CMD_PORT   = int(os.environ.get("CMD_PORT", 5555))
 OBS_PORT   = int(os.environ.get("OBS_PORT", 5556))
 WEB_PORT   = int(os.environ.get("WEB_PORT", 8080))
@@ -920,10 +920,11 @@ def sysinfo():
 def pi_shutdown():
     import subprocess
     try:
+        robot_pass = os.environ.get("ROBOT_PASS", "raspberry")
+        robot_user = os.environ.get("ROBOT_USER", "pi")
         subprocess.Popen([
-            "plink", "-ssh", "-pw", "raspberry",
-            f"pi@{REMOTE_IP}",
-            "-hostkey", "ssh-ed25519 255 SHA256:379wK41H1NB4mUdnfa9RPq9gvqulKc2rI1eqm4B/QF0",
+            "plink", "-ssh", "-pw", robot_pass,
+            f"{robot_user}@{REMOTE_IP}",
             "-batch", "killall -q -SIGINT python python3; sleep 2; sudo shutdown -h now"
         ])
     except Exception as e:

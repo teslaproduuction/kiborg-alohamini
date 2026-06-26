@@ -27,7 +27,7 @@ D:\Проекты\Kiborg\lerobot_alohamini\.venv312\Scripts\python.exe controlle
 ### Env-переменные
 | Var | Default | Что |
 |-----|---------|-----|
-| `ROBOT_IP` | 192.168.31.170 | IP малины (хост lekiwi) |
+| `ROBOT_IP` | 172.24.93.157 | IP малины (хост lekiwi) |
 | `CMD_PORT` | 5555 | ZMQ команды PC→Pi |
 | `OBS_PORT` | 5556 | ZMQ наблюдения Pi→PC |
 | `WEB_PORT` | 8080 | порт веб-сервера |
@@ -44,7 +44,7 @@ DEMO_CAMERAS=1 docker compose up --build
 
 # Или вручную
 docker build -f Dockerfile.controller -t alohamini-pendant .
-docker run --rm -p 8080:8080 -e ROBOT_IP=192.168.31.170 --device /dev/input \
+docker run --rm -p 8080:8080 -e ROBOT_IP=172.24.93.157 --device /dev/input \
   -v "$PWD/recordings:/app/recordings" alohamini-pendant
 ```
 

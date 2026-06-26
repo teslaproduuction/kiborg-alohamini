@@ -6,7 +6,7 @@ import threading
 import zmq
 from pynput import keyboard as kb
 
-REMOTE_IP = "192.168.31.170"
+REMOTE_IP = "172.24.93.157"
 CMD_PORT = 5555
 OBS_PORT = 5556
 FPS = 30

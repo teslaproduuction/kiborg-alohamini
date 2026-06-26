@@ -18,7 +18,7 @@ URDF_PATH  = Path(r"D:\Проекты\Kiborg\AlohaMini\simulation\src\Aloha\urdf
 MESH_DIR   = Path(r"D:\Проекты\Kiborg\AlohaMini\simulation\src\Aloha\meshes")
 BINDINGS_FILE = BASE_DIR / "gamepad_bindings.json"
 
-REMOTE_IP = "192.168.31.170"
+REMOTE_IP = "172.24.93.157"
 CMD_PORT  = 5555
 OBS_PORT  = 5556
 WEB_PORT  = 8080

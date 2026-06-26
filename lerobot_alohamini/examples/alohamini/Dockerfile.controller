@@ -6,7 +6,7 @@
 #
 # Run (talks to Pi over LAN; gamepad needs host input devices):
 #   docker run --rm -p 8080:8080 \
-#     -e ROBOT_IP=192.168.31.170 \
+#     -e ROBOT_IP=172.24.93.157 \
 #     --device /dev/input \
 #     -v "$PWD/recordings:/app/recordings" \
 #     alohamini-pendant
@@ -35,7 +35,7 @@ COPY gamepad_bindings.json ./
 # controller reads SETTINGS_HTML from controller_v2.py — include it
 COPY controller_v2.py ./
 
-ENV ROBOT_IP=192.168.31.170 \
+ENV ROBOT_IP=172.24.93.157 \
     WEB_PORT=8080 \
     SDL_AUDIODRIVER=dummy \
     SDL_VIDEODRIVER=dummy
