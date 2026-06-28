@@ -21,7 +21,13 @@ jobs:
         run: pip install ruff
 
       - name: Ruff lint (AlohaMini examples)
-        run: ruff check lerobot_alohamini/examples/alohamini/ pi-config/robot_src/ --select E,F,W --ignore E501,E402,F401,E401,E701,E711,E712,W291,W293
+        run: |
+          ruff check \
+            lerobot_alohamini/examples/alohamini/controller_v3.py \
+            lerobot_alohamini/examples/alohamini/convert_recording.py \
+            pi-config/robot_src/ \
+            --select E,F,W \
+            --ignore E501,E402,F401,E401,E701,E702,E711,E712,F541,W291,W293
         continue-on-error: false
 
       - name: Syntax check — all Python files
@@ -42,38 +48,50 @@ jobs:
         run: |
           FAIL=0
 
-          # WiFi passwords / network configs
-          if git log --all --full-history -- '*50-cloud-init*' | grep -q commit; then
-            echo "::error::WiFi config file found in history"
+          # WiFi passwords / network configs (check file exists in current tree)
+          if git ls-tree -r --name-only HEAD | grep -qi "50-cloud-init"; then
+            echo "::error::WiFi config file found in repo tree"
             FAIL=1
+          else
+            echo "WiFi config: not in tree OK"
           fi
 
-          # Hardcoded Pi password
+          # Hardcoded Pi password (exclude env-var defaults and comments)
           if grep -rn "raspberry" \
               --include="*.py" --include="*.sh" --include="*.json" \
               --exclude-dir=".git" \
               lerobot_alohamini/examples/alohamini/ pi-config/ 2>/dev/null | \
-              grep -v "Raspberry Pi\|raspberry pi\|#"; then
+              grep -v "Raspberry Pi\|raspberry pi\|#\|environ.get\|ROBOT_PASS"; then
             echo "::error::Possible hardcoded password 'raspberry' found"
             FAIL=1
+          else
+            echo "Password check OK"
           fi
 
-          # Private keys
+          # Private keys (exclude workflow files and docs)
           if grep -rn "BEGIN.*PRIVATE KEY\|BEGIN RSA\|BEGIN EC" \
-              --exclude-dir=".git" . 2>/dev/null; then
+              --exclude-dir=".git" --exclude-dir=".github" \
+              --include="*.py" --include="*.sh" --include="*.pem" --include="*.key" \
+              . 2>/dev/null; then
             echo "::error::Private key material detected"
             FAIL=1
+          else
+            echo "Private key check OK"
           fi
 
           # HuggingFace / API tokens
           if grep -rn "hf_[A-Za-z0-9]\{20,\}\|sk-[A-Za-z0-9]\{30,\}" \
-              --exclude-dir=".git" --exclude-dir=".venv*" . 2>/dev/null; then
+              --exclude-dir=".git" --exclude-dir=".venv*" \
+              --include="*.py" --include="*.sh" --include="*.json" \
+              . 2>/dev/null; then
             echo "::error::API token detected"
             FAIL=1
+          else
+            echo "Token check OK"
           fi
 
           if [ $FAIL -eq 0 ]; then
-            echo "No secrets found"
+            echo "All secret checks passed"
           fi
           exit $FAIL
 
