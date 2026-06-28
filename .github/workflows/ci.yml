@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install linters
+        run: pip install ruff
+
+      - name: Ruff lint (AlohaMini examples)
+        run: ruff check lerobot_alohamini/examples/alohamini/ pi-config/robot_src/ --select E,F,W --ignore E501,E402,F401
+        continue-on-error: false
+
+      - name: Syntax check — all Python files
+        run: |
+          find lerobot_alohamini/examples/alohamini pi-config/robot_src \
+            -name "*.py" -exec python -m py_compile {} \;
+          echo "All .py files parse OK"
+
+  secrets-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for hardcoded credentials
+        run: |
+          FAIL=0
+
+          # WiFi passwords / network configs
+          if git log --all --full-history -- '*50-cloud-init*' | grep -q commit; then
+            echo "::error::WiFi config file found in history"
+            FAIL=1
+          fi
+
+          # Hardcoded Pi password
+          if grep -rn "raspberry" \
+              --include="*.py" --include="*.sh" --include="*.json" \
+              --exclude-dir=".git" \
+              lerobot_alohamini/examples/alohamini/ pi-config/ 2>/dev/null | \
+              grep -v "Raspberry Pi\|raspberry pi\|#"; then
+            echo "::error::Possible hardcoded password 'raspberry' found"
+            FAIL=1
+          fi
+
+          # Private keys
+          if grep -rn "BEGIN.*PRIVATE KEY\|BEGIN RSA\|BEGIN EC" \
+              --exclude-dir=".git" . 2>/dev/null; then
+            echo "::error::Private key material detected"
+            FAIL=1
+          fi
+
+          # HuggingFace / API tokens
+          if grep -rn "hf_[A-Za-z0-9]\{20,\}\|sk-[A-Za-z0-9]\{30,\}" \
+              --exclude-dir=".git" --exclude-dir=".venv*" . 2>/dev/null; then
+            echo "::error::API token detected"
+            FAIL=1
+          fi
+
+          if [ $FAIL -eq 0 ]; then
+            echo "No secrets found"
+          fi
+          exit $FAIL
+
+  structure:
+    name: Repo Structure Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Required files exist
+        run: |
+          for f in \
+            LICENSE \
+            README.md \
+            lerobot_alohamini/examples/alohamini/controller_v3.py \
+            lerobot_alohamini/examples/alohamini/ui_main.html \
+            pi-config/robot_src/lekiwi_host.py \
+            pi-config/robot_src/lekiwi.py; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Missing required file: $f"
+              exit 1
+            fi
+          done
+          echo "All required files present"

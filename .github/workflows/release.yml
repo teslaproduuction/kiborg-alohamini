@@ -1,0 +1,190 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Package & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install ruff
+
+      - name: Validate syntax before release
+        run: |
+          ruff check lerobot_alohamini/examples/alohamini/ pi-config/robot_src/ \
+            --select E,F,W --ignore E501,E402,F401
+          find lerobot_alohamini/examples/alohamini pi-config/robot_src \
+            -name "*.py" -exec python -m py_compile {} \;
+
+      - name: Extract version
+        id: version
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      # ── PC Controller package ─────────────────────────────────────────────
+      - name: Build controller package
+        run: |
+          PKG="alohamini-controller-${{ steps.version.outputs.tag }}"
+          mkdir -p dist/$PKG
+
+          cp lerobot_alohamini/examples/alohamini/controller_v3.py  dist/$PKG/
+          cp lerobot_alohamini/examples/alohamini/ui_main.html       dist/$PKG/
+          cp lerobot_alohamini/examples/alohamini/ui_settings.html   dist/$PKG/
+          cp lerobot_alohamini/examples/alohamini/ui_arm_settings.html dist/$PKG/
+          cp lerobot_alohamini/examples/alohamini/convert_recording.py dist/$PKG/
+
+          # Write requirements
+          cat > dist/$PKG/requirements.txt << 'EOF'
+          flask>=3.0
+          pyzmq>=25
+          pygame>=2.5
+          opencv-python-headless>=4.9
+          numpy>=1.26
+          EOF
+
+          # Quick-start script
+          cat > dist/$PKG/start.sh << 'EOF'
+          #!/bin/bash
+          # AlohaMini Controller — quick start
+          # Usage: ROBOT_IP=<pi_ip> bash start.sh
+          pip install -r requirements.txt -q
+          python controller_v3.py
+          EOF
+          chmod +x dist/$PKG/start.sh
+
+          cat > dist/$PKG/start.bat << 'EOF'
+          @echo off
+          pip install -r requirements.txt -q
+          set ROBOT_IP=%1
+          python controller_v3.py
+          EOF
+
+          cd dist && zip -r ../$PKG.zip $PKG/
+          cd ..
+          sha256sum $PKG.zip > $PKG.zip.sha256
+
+      # ── Pi Robot package ──────────────────────────────────────────────────
+      - name: Build Pi robot package
+        run: |
+          PKG="alohamini-pi-${{ steps.version.outputs.tag }}"
+          mkdir -p dist/$PKG
+
+          cp pi-config/robot_src/lekiwi_host.py   dist/$PKG/
+          cp pi-config/robot_src/lekiwi.py         dist/$PKG/
+          cp pi-config/robot_src/lekiwi_client.py  dist/$PKG/
+          cp pi-config/robot_src/config_lekiwi.py  dist/$PKG/
+          cp pi-config/robot_src/lift_axis.py       dist/$PKG/
+
+          if [ -d pi-config/systemd ]; then
+            cp -r pi-config/systemd dist/$PKG/
+          fi
+
+          cp lerobot_alohamini/examples/alohamini/robot_display.py   dist/$PKG/
+          cp lerobot_alohamini/examples/alohamini/ui_robot_face.html dist/$PKG/
+          cp lerobot_alohamini/examples/alohamini/robot_cam_server.py dist/$PKG/
+
+          cat > dist/$PKG/install.sh << 'EOF'
+          #!/bin/bash
+          # AlohaMini Pi — install robot sources
+          set -e
+          DEST=/home/pi/lerobot_alohamini/src/lerobot/robots/alohamini/
+
+          sudo mkdir -p $DEST
+          sudo cp lekiwi.py lekiwi_host.py lekiwi_client.py config_lekiwi.py lift_axis.py $DEST
+
+          cp robot_display.py ui_robot_face.html robot_cam_server.py ~
+
+          if [ -d systemd ]; then
+            sudo cp systemd/*.service /etc/systemd/system/
+            sudo systemctl daemon-reload
+            sudo systemctl enable alohamini-host alohamini-cam
+            echo "Services installed. Reboot to autostart."
+          fi
+          echo "Done."
+          EOF
+          chmod +x dist/$PKG/install.sh
+
+          cd dist && zip -r ../$PKG.zip $PKG/
+          cd ..
+          sha256sum $PKG.zip > $PKG.zip.sha256
+
+      # ── Changelog ────────────────────────────────────────────────────────
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV=$(git tag --sort=-version:refname | sed -n '2p')
+          if [ -z "$PREV" ]; then
+            LOG=$(git log --pretty="- %s" | head -30)
+          else
+            LOG=$(git log ${PREV}..HEAD --pretty="- %s")
+          fi
+
+          # Categorize
+          FEAT=$(echo "$LOG" | grep -i "^- feat" || true)
+          FIX=$(echo "$LOG"  | grep -i "^- fix"  || true)
+          DOCS=$(echo "$LOG" | grep -i "^- doc\|^- chore\|^- design" || true)
+          OTHER=$(echo "$LOG" | grep -iv "^- feat\|^- fix\|^- doc\|^- chore\|^- design" || true)
+
+          BODY="## AlohaMini ${{ steps.version.outputs.tag }}"$'\n\n'
+
+          if [ -n "$FEAT" ]; then
+            BODY+="### New Features"$'\n'"$FEAT"$'\n\n'
+          fi
+          if [ -n "$FIX" ]; then
+            BODY+="### Bug Fixes"$'\n'"$FIX"$'\n\n'
+          fi
+          if [ -n "$DOCS" ]; then
+            BODY+="### Other"$'\n'"$DOCS"$'\n\n'
+          fi
+          if [ -n "$OTHER" ]; then
+            BODY+="### Changes"$'\n'"$OTHER"$'\n\n'
+          fi
+
+          BODY+="---"$'\n'
+          BODY+="**Hardware:** RPi5 + 16× Feetech STS3215 + 3× Waveshare Bus Servo Controller"$'\n'
+          BODY+="**Software:** LeRobot (ACT/SmolVLA) + Flask web pendant + ZMQ"$'\n\n'
+          BODY+="### Install"$'\n'
+          BODY+="\`\`\`bash"$'\n'
+          BODY+="# PC Controller"$'\n'
+          BODY+="unzip alohamini-controller-${{ steps.version.outputs.tag }}.zip && cd alohamini-controller-${{ steps.version.outputs.tag }}"$'\n'
+          BODY+="ROBOT_IP=<pi_ip> bash start.sh"$'\n\n'
+          BODY+="# Pi (SSH into Raspberry Pi)"$'\n'
+          BODY+="unzip alohamini-pi-${{ steps.version.outputs.tag }}.zip && cd alohamini-pi-${{ steps.version.outputs.tag }}"$'\n'
+          BODY+="bash install.sh"$'\n'
+          BODY+="\`\`\`"
+
+          {
+            echo 'body<<CHANGELOG_EOF'
+            echo "$BODY"
+            echo 'CHANGELOG_EOF'
+          } >> $GITHUB_OUTPUT
+
+      # ── Publish ───────────────────────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "AlohaMini ${{ steps.version.outputs.tag }}"
+          body: ${{ steps.changelog.outputs.body }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
+          files: |
+            alohamini-controller-${{ steps.version.outputs.tag }}.zip
+            alohamini-controller-${{ steps.version.outputs.tag }}.zip.sha256
+            alohamini-pi-${{ steps.version.outputs.tag }}.zip
+            alohamini-pi-${{ steps.version.outputs.tag }}.zip.sha256
