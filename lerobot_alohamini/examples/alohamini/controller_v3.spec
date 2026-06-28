@@ -4,22 +4,20 @@
 #   pyinstaller lerobot_alohamini/examples/alohamini/controller_v3.spec
 
 from pathlib import Path
-import sys
 
-HERE = Path("lerobot_alohamini/examples/alohamini")
-MESHES = Path("AlohaMini/simulation/src/Aloha/meshes")
+# SPECPATH = directory containing this .spec file (set by PyInstaller)
+HERE   = Path(SPECPATH)                                        # .../alohamini/
+MESHES = (HERE / "../../../AlohaMini/simulation/src/Aloha/meshes").resolve()
 
 a = Analysis(
     [str(HERE / "controller_v3.py")],
-    pathex=["."],
+    pathex=[str(HERE)],
     binaries=[],
     datas=[
-        # Read-only HTML UI
         (str(HERE / "ui_main.html"),         "."),
         (str(HERE / "ui_settings.html"),     "."),
         (str(HERE / "ui_arm_settings.html"), "."),
-        # 3D mesh files for arm visualiser
-        (str(MESHES), "meshes"),
+        (str(MESHES),                        "meshes"),
     ],
     hiddenimports=[
         "flask",
@@ -56,7 +54,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,          # keep console for log output
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
