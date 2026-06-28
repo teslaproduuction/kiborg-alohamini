@@ -13,6 +13,19 @@ import zmq
 import pygame
 from flask import Flask, request, jsonify, Response, send_from_directory
 
+# ── PyInstaller-aware path helpers ────────────────────────────────────────────
+def _resource_path(rel: str) -> Path:
+    """Read-only bundled asset (HTML, meshes). Uses sys._MEIPASS when frozen."""
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS", "")) / rel
+    return Path(__file__).parent / rel
+
+def _data_path(rel: str) -> Path:
+    """Writable runtime file (JSON configs, recordings). Always next to exe/script."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent / rel
+    return Path(__file__).parent / rel
+
 # ── Config (env-overridable for Docker) ──────────────────────────────────────
 REMOTE_IP  = os.environ.get("ROBOT_IP", "172.24.93.157")
 CMD_PORT   = int(os.environ.get("CMD_PORT", 5555))
@@ -22,10 +35,11 @@ WEB_PORT   = int(os.environ.get("WEB_PORT", 8080))
 CAM_SERVER_PORT = int(os.environ.get("CAM_SERVER_PORT", 8091))
 # /dev/videoN indices served by cam server (not via ZMQ obs)
 CAM_SERVER_DEVS = [int(x) for x in os.environ.get("CAM_SERVER_DEVS", "2,4,6,8").split(",")]
-BINDINGS_FILE      = Path(__file__).parent / "gamepad_bindings.json"
-ARM_BINDINGS_FILE  = Path(__file__).parent / "arm_bindings.json"
-CAM_LABELS_FILE    = Path(__file__).parent / "camera_labels.json"
-MESH_DIR   = Path(r"D:\Проекты\Kiborg\AlohaMini\simulation\src\Aloha\meshes")
+BINDINGS_FILE      = _data_path("gamepad_bindings.json")
+ARM_BINDINGS_FILE  = _data_path("arm_bindings.json")
+CAM_LABELS_FILE    = _data_path("camera_labels.json")
+_mesh_env = os.environ.get("MESH_DIR")
+MESH_DIR   = Path(_mesh_env) if _mesh_env else _resource_path("meshes")
 
 # ── ZMQ ───────────────────────────────────────────────────────────────────────
 ctx = zmq.Context()
@@ -36,7 +50,7 @@ obs_sock.connect(f"tcp://{REMOTE_IP}:{OBS_PORT}")
 obs_sock.setsockopt(zmq.RCVTIMEO, 200)  # 200ms — Pi sends at 30fps, allow camera delays
 
 ARM_JOINTS = ["shoulder_pan","shoulder_lift","elbow_flex","wrist_flex","wrist_roll","gripper"]
-REC_DIR = Path(__file__).parent / "recordings"
+REC_DIR = _data_path("recordings")
 
 # ── State ─────────────────────────────────────────────────────────────────────
 state = {
@@ -970,7 +984,7 @@ def reset_arm_bindings():
 
 @app.route('/arm_settings')
 def arm_settings_page():
-    p = Path(__file__).parent / "ui_arm_settings.html"
+    p = _resource_path("ui_arm_settings.html")
     if p.exists(): return p.read_text(encoding="utf-8")
     return "<h2>ui_arm_settings.html missing</h2>"
 
@@ -985,7 +999,7 @@ def set_bindings():
 def reset_bindings():
     global bindings; bindings=json.loads(json.dumps(DEFAULT_BINDINGS)); save_bindings(); return jsonify(bindings)
 
-ROUTES_DIR = Path(__file__).parent / "routes"
+ROUTES_DIR = _data_path("routes")
 ROUTES_DIR.mkdir(exist_ok=True)
 
 @app.route('/waypoints', methods=['POST'])
@@ -1076,13 +1090,13 @@ def index(): return MAIN_HTML
 
 @app.route('/settings')
 def settings_page():
-    p = Path(__file__).parent / "ui_settings.html"
+    p = _resource_path("ui_settings.html")
     if p.exists(): return p.read_text(encoding="utf-8")
     return SETTINGS_HTML  # fallback to old embedded
 
 # ── Load HTML pages ───────────────────────────────────────────────────────────
 def _load_main_html():
-    p = Path(__file__).parent / "ui_main.html"
+    p = _resource_path("ui_main.html")
     if p.exists():
         return p.read_text(encoding="utf-8")
     return "<h2>ui_main.html missing</h2>"

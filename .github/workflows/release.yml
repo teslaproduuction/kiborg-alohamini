@@ -174,17 +174,55 @@ jobs:
             echo 'CHANGELOG_EOF'
           } >> $GITHUB_OUTPUT
 
-      # ── Publish ───────────────────────────────────────────────────────────
+      # ── Publish (draft — exe job uploads later) ──────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: "AlohaMini ${{ steps.version.outputs.tag }}"
           body: ${{ steps.changelog.outputs.body }}
-          draft: false
+          draft: true
           prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
           files: |
             alohamini-controller-${{ steps.version.outputs.tag }}.zip
             alohamini-controller-${{ steps.version.outputs.tag }}.zip.sha256
             alohamini-pi-${{ steps.version.outputs.tag }}.zip
             alohamini-pi-${{ steps.version.outputs.tag }}.zip.sha256
+
+  build-exe:
+    name: Windows .exe (PyInstaller)
+    runs-on: windows-latest
+    needs: build-and-release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller flask pyzmq pygame opencv-python-headless numpy
+
+      - name: Build --onefile exe
+        run: |
+          pyinstaller lerobot_alohamini/examples/alohamini/controller_v3.spec --distpath dist-exe
+
+      - name: Rename & checksum
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $src = "dist-exe\alohamini-controller.exe"
+          $dst = "alohamini-controller-$tag-windows.exe"
+          Move-Item $src $dst
+          (Get-FileHash $dst -Algorithm SHA256).Hash.ToLower() + "  $dst" | Out-File "$dst.sha256" -Encoding ascii
+
+      - name: Upload exe to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          files: |
+            alohamini-controller-${{ github.ref_name }}-windows.exe
+            alohamini-controller-${{ github.ref_name }}-windows.exe.sha256
