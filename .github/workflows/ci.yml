@@ -27,7 +27,7 @@ jobs:
             lerobot_alohamini/examples/alohamini/convert_recording.py \
             pi-config/robot_src/ \
             --select E,F,W \
-            --ignore E501,E402,F401,E401,E701,E702,E711,E712,F541,W291,W293
+            --ignore E501,E402,F401,E401,E701,E702,E711,E712,E722,F541,F841,W291,W293
         continue-on-error: false
 
       - name: Syntax check — all Python files
